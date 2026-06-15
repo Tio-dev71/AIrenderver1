@@ -323,12 +323,10 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
         print("⚠️ Chưa có ANTHROPIC_API_KEY, không thể sinh script.")
         return None, None
 
-    prompt = SCRIPT_PROMPT.format(
-        title=article["title"],
-        domain=article["domain"],
-        og_image=article["ogImage"] or "null",
-        content=article["content"][:2000],
-    )
+    prompt = SCRIPT_PROMPT.replace("{title}", article["title"]) \
+                          .replace("{domain}", article["domain"]) \
+                          .replace("{og_image}", article["ogImage"] or "null") \
+                          .replace("{content}", article["content"][:2000])
 
     try:
         response = client.messages.create(
@@ -388,7 +386,7 @@ def rewrite_script_json(script: dict) -> tuple[dict, dict | None]:
     if not client:
         return script, None
 
-    prompt = REWRITE_PROMPT.format(script_json=json.dumps(script, ensure_ascii=False, indent=2))
+    prompt = REWRITE_PROMPT.replace("{script_json}", json.dumps(script, ensure_ascii=False, indent=2))
 
     try:
         response = client.messages.create(
