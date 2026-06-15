@@ -154,17 +154,11 @@ def scrape_article(url: str) -> dict:
         title = og_title or (soup.title.string.strip() if soup.title and soup.title.string else "Không có tiêu đề")
 
         # Extract text content
-        # Remove script/style/nav/footer
-        for tag in soup(["script", "style", "noscript", "svg", "iframe", "nav", "footer", "form", "header"]):
+        # Remove script/style/nav/footer/aside to get clean text
+        for tag in soup(["script", "style", "noscript", "svg", "iframe", "nav", "footer", "form", "header", "aside"]):
             tag.decompose()
 
-        text_parts = []
-        for p in soup.find_all(["p", "h1", "h2", "h3", "li"]):
-            t = p.get_text(strip=True)
-            if len(t) > 15:
-                text_parts.append(t)
-
-        content = " ".join(text_parts)
+        content = soup.get_text(separator=" ", strip=True)
         # Clean up
         content = re.sub(r"\s+", " ", content).strip()
         content = content[:3000]  # Cap at 3000 chars to save tokens
@@ -323,11 +317,11 @@ Script hiện tại:
 """
 
 
-def generate_script_json(article: dict) -> dict | None:
+def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
     """Use Claude API to generate script.json matching Auto-Create-Video Zod schema."""
     if not client:
         print("⚠️ Chưa có ANTHROPIC_API_KEY, không thể sinh script.")
-        return None
+        return None, None
 
     prompt = SCRIPT_PROMPT.format(
         title=article["title"],
@@ -373,20 +367,26 @@ def generate_script_json(article: dict) -> dict | None:
             scenes[-1]["type"] = "outro"
 
         print(f"✅ Claude đã sinh script.json ({len(scenes)} scenes)")
-        return script
+        
+        # Lấy thông tin usage tokens
+        usage = {
+            "input_tokens": response.usage.input_tokens if hasattr(response.usage, 'input_tokens') else 0,
+            "output_tokens": response.usage.output_tokens if hasattr(response.usage, 'output_tokens') else 0
+        }
+        return script, usage
 
     except json.JSONDecodeError as e:
         print(f"❌ Lỗi parse JSON từ Claude: {e}")
-        return None
+        return None, None
     except Exception as e:
         print(f"❌ Lỗi Claude API: {e}")
-        return None
+        return None, None
 
 
-def rewrite_script_json(script: dict) -> dict:
+def rewrite_script_json(script: dict) -> tuple[dict, dict | None]:
     """Use Claude API to rewrite voiceText in script.json."""
     if not client:
-        return script
+        return script, None
 
     prompt = REWRITE_PROMPT.format(script_json=json.dumps(script, ensure_ascii=False, indent=2))
 
@@ -407,15 +407,20 @@ def rewrite_script_json(script: dict) -> dict:
             return script
 
         new_script = json.loads(text)
+        usage = {
+            "input_tokens": response.usage.input_tokens if hasattr(response.usage, 'input_tokens') else 0,
+            "output_tokens": response.usage.output_tokens if hasattr(response.usage, 'output_tokens') else 0
+        }
+        
         if "scenes" in new_script and len(new_script["scenes"]) >= 5:
             print("✅ Claude đã viết lại script.json")
-            return new_script
+            return new_script, usage
         else:
             print("⚠️ AI trả về script không hợp lệ. Giữ bản cũ.")
-            return script
+            return script, usage
     except Exception as e:
         print(f"❌ Lỗi rewrite: {e}")
-        return script
+        return script, None
 
 
 # ─── Telegram message formatting ─────────────────────────────────────────────
@@ -508,7 +513,7 @@ def handle_url(message):
                 bot.edit_message_text("❌ Không đọc được nội dung bài viết. Thử link khác nhé.", chat_id, msg.message_id)
                 return
 
-            script = generate_script_json(article)
+            script, usage = generate_script_json(article)
             if not script:
                 bot.edit_message_text("❌ AI không thể tạo kịch bản. Thử lại sau.", chat_id, msg.message_id)
                 return
@@ -519,6 +524,7 @@ def handle_url(message):
                 "message_id": msg.message_id,
                 "article": article,
                 "script": script,
+                "usage": usage,
                 "url": url,
             }
             send_script_approval(job_id)
@@ -582,8 +588,15 @@ def handle_callback(call):
 
         def do_rewrite():
             session = sessions[job_id]
-            new_script = rewrite_script_json(session["script"])
+            new_script, new_usage = rewrite_script_json(session["script"])
             session["script"] = new_script
+            
+            if new_usage:
+                old_usage = session.get("usage", {"input_tokens": 0, "output_tokens": 0})
+                session["usage"] = {
+                    "input_tokens": old_usage.get("input_tokens", 0) + new_usage.get("input_tokens", 0),
+                    "output_tokens": old_usage.get("output_tokens", 0) + new_usage.get("output_tokens", 0),
+                }
             # Need a new message since we can't edit back with buttons easily
             msg = bot.send_message(chat_id, "⏳ Đang cập nhật...")
             session["message_id"] = msg.message_id
@@ -659,9 +672,27 @@ def render_video_task(job_id: str, message_id: int):
         video_file = output_path / "video.mp4"
         if video_file.exists():
             file_size_mb = video_file.stat().st_size / (1024 * 1024)
+            
+            # Tính chi phí
+            usage = session.get("usage", {"input_tokens": 0, "output_tokens": 0})
+            in_tokens = usage.get("input_tokens", 0)
+            out_tokens = usage.get("output_tokens", 0)
+            
+            # Claude 3.5 Sonnet: $3/1M input, $15/1M output
+            claude_cost = (in_tokens / 1_000_000) * 3.0 + (out_tokens / 1_000_000) * 15.0
+            
+            # TTS Cost (ElevenLabs: ~$0.30 per 1000 chars)
+            total_chars = sum(len(scene.get("voiceText", "")) for scene in script.get("scenes", []))
+            tts_cost = 0
+            if TTS_PROVIDER == "elevenlabs":
+                tts_cost = (total_chars / 1000) * 0.30
+                
+            total_cost = claude_cost + tts_cost
+            
             bot.edit_message_text(
                 f"✅ Video render thành công!\n"
                 f"📦 Kích thước: {file_size_mb:.1f} MB\n"
+                f"💰 Phí dự kiến: ${total_cost:.4f}\n"
                 f"📤 Đang upload lên Telegram...",
                 chat_id, message_id
             )
@@ -682,7 +713,7 @@ def render_video_task(job_id: str, message_id: int):
                         caption=(
                             f"🎬 {article.get('title', 'Video')}\n"
                             f"🔗 Nguồn: {article.get('url', '')}\n"
-                            f"📦 {file_size_mb:.1f} MB"
+                            f"💰 Phí: ${total_cost:.4f} | 📦 {file_size_mb:.1f} MB"
                         ),
                         reply_to_message_id=message_id,
                         timeout=300,
