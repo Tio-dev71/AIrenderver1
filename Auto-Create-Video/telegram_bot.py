@@ -217,7 +217,7 @@ Dựa trên bài báo bên dưới, hãy sinh ra một file JSON hoàn chỉnh t
       "domain": "<domain>",
       "image": "<URL ảnh og:image hoặc null>"
     },
-    "channel": "Crypto News"
+    "channel": "Hedra Central"
   },
   "voice": {
     "provider": "lucylab",
@@ -316,6 +316,21 @@ Script hiện tại:
 {script_json}
 """
 
+REWRITE_CUSTOM_PROMPT = """Bạn là chuyên gia viết kịch bản video tin tức crypto.
+
+Dưới đây là script.json hiện tại. Người dùng vừa gửi yêu cầu CHỈNH SỬA kịch bản này như sau:
+"{instruction}"
+
+Hãy VIẾT LẠI script.json theo đúng yêu cầu trên.
+Giữ nguyên cấu trúc JSON, metadata, template types. Chỉ thay đổi nội dung cần thiết.
+Tuân thủ quy tắc TTS tiếng Việt: viết phonetic cho tất cả số/ký hiệu.
+
+Trả về ĐÚNG 1 JSON object hoàn chỉnh, không markdown, không giải thích.
+
+Script hiện tại:
+{script_json}
+"""
+
 
 def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
     """Use Claude API to generate script.json matching Auto-Create-Video Zod schema."""
@@ -384,12 +399,15 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
         return None, None
 
 
-def rewrite_script_json(script: dict) -> tuple[dict, dict | None]:
+def rewrite_script_json(script: dict, instruction: str = None) -> tuple[dict, dict | None]:
     """Use Claude API to rewrite voiceText in script.json."""
     if not client:
         return script, None
 
-    prompt = REWRITE_PROMPT.replace("{script_json}", json.dumps(script, ensure_ascii=False, indent=2))
+    if instruction:
+        prompt = REWRITE_CUSTOM_PROMPT.replace("{instruction}", instruction).replace("{script_json}", json.dumps(script, ensure_ascii=False, indent=2))
+    else:
+        prompt = REWRITE_PROMPT.replace("{script_json}", json.dumps(script, ensure_ascii=False, indent=2))
 
     try:
         response = client.messages.create(
@@ -473,7 +491,7 @@ def enforce_schema_limits(script: dict) -> dict:
             # Sometimes Claude returns "cta" instead of "ctaTop"
             cta = td.get("ctaTop") or td.get("cta") or "Theo dõi ngay"
             td["ctaTop"] = _trunc(cta, 30, "Theo dõi ngay")
-            td["channelName"] = _trunc(td.get("channelName"), 30, "Crypto News")
+            td["channelName"] = _trunc(td.get("channelName"), 30, "Hedra Central")
             td["source"] = _trunc(td.get("source"), 40, "Nguồn tham khảo")
             if "cta" in td:
                 del td["cta"]
@@ -590,6 +608,42 @@ def handle_url(message):
             bot.edit_message_text(f"❌ Lỗi: {e}", chat_id, msg.message_id)
 
     threading.Thread(target=process, daemon=True).start()
+
+
+@bot.message_handler(func=lambda message: message.reply_to_message is not None)
+def handle_reply(message):
+    reply_msg_id = message.reply_to_message.message_id
+    chat_id = message.chat.id
+    
+    target_job_id = None
+    for jid, session in sessions.items():
+        if session.get("message_id") == reply_msg_id:
+            target_job_id = jid
+            break
+            
+    if not target_job_id:
+        return
+        
+    instruction = message.text
+    bot.reply_to(message, "⏳ Đã nhận yêu cầu sửa kịch bản. Đang xử lý...")
+    
+    def do_custom_rewrite():
+        session = sessions[target_job_id]
+        new_script, new_usage = rewrite_script_json(session["script"], instruction)
+        session["script"] = new_script
+        
+        if new_usage:
+            old_usage = session.get("usage", {"input_tokens": 0, "output_tokens": 0})
+            session["usage"] = {
+                "input_tokens": old_usage.get("input_tokens", 0) + new_usage.get("input_tokens", 0),
+                "output_tokens": old_usage.get("output_tokens", 0) + new_usage.get("output_tokens", 0),
+            }
+        
+        msg = bot.send_message(chat_id, "⏳ Đang cập nhật kịch bản mới...")
+        session["message_id"] = msg.message_id
+        send_script_approval(target_job_id, header=f"🔄 *Kịch Bản Đã Sửa:* _{_escape_md(instruction)}_")
+
+    threading.Thread(target=do_custom_rewrite, daemon=True).start()
 
 
 # ─── Script approval UI ──────────────────────────────────────────────────────
