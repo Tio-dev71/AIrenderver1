@@ -768,8 +768,10 @@ def render_video_task(job_id: str, message_id: int):
                         chat_id, f,
                         width=1080, height=1920,
                         caption=(
-                            f"🎬 {article.get('title', 'Video')}\n"
-                            f"🔗 Nguồn: {article.get('url', '')}\n"
+                            f"🎬 {article.get('title', 'Video')}\n\n"
+                            f"🔗 Tham gia ngay: https://okx.com/join/HEDRATIKTOK\n"
+                            f"📰 Nguồn: {article.get('url', '')}\n\n"
+                            f"#TheBeautifulGame #OKX\n"
                             f"💰 Phí: ${total_cost:.4f} | 📦 {file_size_mb:.1f} MB"
                         ),
                         reply_to_message_id=message_id,
