@@ -364,6 +364,9 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
             print("⚠️ Scene cuối không phải outro, sửa lại.")
             scenes[-1]["type"] = "outro"
 
+        # Đảm bảo các field thỏa mãn độ dài của Zod (chống crash Node.js)
+        script = enforce_schema_limits(script)
+
         print(f"✅ Claude đã sinh script.json ({len(scenes)} scenes)")
         
         # Lấy thông tin usage tokens
@@ -411,6 +414,7 @@ def rewrite_script_json(script: dict) -> tuple[dict, dict | None]:
         }
         
         if "scenes" in new_script and len(new_script["scenes"]) >= 5:
+            new_script = enforce_schema_limits(new_script)
             print("✅ Claude đã viết lại script.json")
             return new_script, usage
         else:
@@ -420,6 +424,61 @@ def rewrite_script_json(script: dict) -> tuple[dict, dict | None]:
         print(f"❌ Lỗi rewrite: {e}")
         return script, None
 
+
+# ─── Zod Schema Normalizer ───────────────────────────────────────────────────
+
+def enforce_schema_limits(script: dict) -> dict:
+    """Ensure generated script matches Zod limits to prevent Node.js crashes."""
+    if not isinstance(script, dict):
+        return script
+        
+    def _trunc(val, limit: int, fallback: str = "N/A") -> str:
+        if not val or not isinstance(val, str):
+            return fallback
+        return val[:limit]
+
+    for scene in script.get("scenes", []):
+        td = scene.get("templateData", {})
+        tpl = td.get("template")
+        
+        if tpl == "hook":
+            td["headline"] = _trunc(td.get("headline"), 40, "Tin tức Crypto")
+            if "subhead" in td:
+                td["subhead"] = _trunc(td.get("subhead"), 40)
+        elif tpl == "comparison":
+            left = td.get("left", {})
+            left["label"] = _trunc(left.get("label"), 30, "Lựa chọn 1")
+            left["value"] = _trunc(left.get("value"), 20, "???")
+            td["left"] = left
+            right = td.get("right", {})
+            right["label"] = _trunc(right.get("label"), 30, "Lựa chọn 2")
+            right["value"] = _trunc(right.get("value"), 20, "???")
+            td["right"] = right
+        elif tpl == "stat-hero":
+            td["label"] = _trunc(td.get("label"), 40, "Chỉ số quan trọng")
+            td["value"] = _trunc(td.get("value"), 20, "0%")
+            if "context" in td:
+                td["context"] = _trunc(td.get("context"), 50)
+        elif tpl == "feature-list":
+            td["title"] = _trunc(td.get("title"), 40, "Điểm nổi bật")
+            bullets = td.get("bullets", [])
+            if not isinstance(bullets, list) or not bullets:
+                bullets = ["Không có thông tin"]
+            td["bullets"] = [_trunc(b, 50, "Mục") for b in bullets[:4]]
+        elif tpl == "callout":
+            td["statement"] = _trunc(td.get("statement"), 80, "Cần lưu ý quan trọng")
+            if "tag" in td:
+                td["tag"] = _trunc(td.get("tag"), 20)
+        elif tpl == "outro":
+            # Sometimes Claude returns "cta" instead of "ctaTop"
+            cta = td.get("ctaTop") or td.get("cta") or "Theo dõi ngay"
+            td["ctaTop"] = _trunc(cta, 30, "Theo dõi ngay")
+            td["channelName"] = _trunc(td.get("channelName"), 30, "Crypto News")
+            td["source"] = _trunc(td.get("source"), 40, "Nguồn tham khảo")
+            if "cta" in td:
+                del td["cta"]
+                
+    return script
 
 # ─── Telegram message formatting ─────────────────────────────────────────────
 
