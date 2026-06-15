@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <defs>
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2EE5A8"/>
+      <stop offset="50%" stop-color="#3BB8FF"/>
+      <stop offset="100%" stop-color="#E879F9"/>
+    </linearGradient>
+
+    <linearGradient id="diamondGradGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+    <linearGradient id="diamondGradBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="diamondGradPink" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0ABFC"/>
+      <stop offset="100%" stop-color="#E879F9"/>
+    </linearGradient>
+    <linearGradient id="diamondGradCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#67E8F9"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+
+    <linearGradient id="pillGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="50%" stop-color="#3BB8FF"/>
+      <stop offset="100%" stop-color="#E879F9"/>
+    </linearGradient>
+
+    <linearGradient id="newsTagGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+
+    <linearGradient id="newsImgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C4B5FD"/>
+      <stop offset="100%" stop-color="#F0ABFC"/>
+    </linearGradient>
+
+    <!-- Clip path to keep all decorations inside the circle -->
+    <clipPath id="circleClip">
+      <circle cx="500" cy="500" r="463"/>
+    </clipPath>
+  </defs>
+
+  <!-- WHITE FILL inside circle (background) -->
+  <circle cx="500" cy="500" r="463" fill="#FFFFFF"/>
+
+  <!-- All decorative elements clipped to inside circle -->
+  <g clip-path="url(#circleClip)">
+
+    <!-- Decorative circuit lines -->
+    <g stroke="#A5F3FC" stroke-width="1.8" fill="none" opacity="0.55">
+      <path d="M 700 165 L 760 165 L 778 183 L 820 183"/>
+      <path d="M 660 235 L 715 235 L 735 255"/>
+      <path d="M 200 200 L 258 200 L 278 180 L 320 180"/>
+      <path d="M 165 270 L 225 270"/>
+      <path d="M 165 770 L 225 770 L 245 790 L 290 790"/>
+      <path d="M 210 830 L 270 830"/>
+      <path d="M 720 825 L 775 825 L 795 805 L 835 805"/>
+      <path d="M 690 770 L 745 770"/>
+      <path d="M 855 510 L 882 510"/>
+      <path d="M 850 565 L 870 565 L 880 575"/>
+      <path d="M 120 510 L 148 510"/>
+      <path d="M 132 450 L 162 450"/>
+    </g>
+
+    <g opacity="0.6">
+      <circle cx="295" cy="155" r="4.5" fill="#86EFAC"/>
+      <circle cx="385" cy="175" r="3.5" fill="#A5F3FC"/>
+      <circle cx="715" cy="170" r="3.5" fill="#A5F3FC"/>
+      <circle cx="828" cy="190" r="4.5" fill="#C4B5FD"/>
+      <circle cx="855" cy="510" r="3.5" fill="#C4B5FD"/>
+      <circle cx="810" cy="810" r="4.5" fill="#F0ABFC"/>
+      <circle cx="270" cy="828" r="3.5" fill="#F0ABFC"/>
+      <circle cx="155" cy="765" r="4.5" fill="#86EFAC"/>
+      <circle cx="148" cy="510" r="3.5" fill="#86EFAC"/>
+      <circle cx="170" cy="448" r="3.5" fill="#A5F3FC"/>
+      <rect x="248" y="125" width="13" height="13" rx="2.5" fill="#86EFAC"/>
+      <rect x="785" y="220" width="11" height="11" rx="2" fill="#A5F3FC"/>
+      <rect x="195" y="848" width="13" height="13" rx="2.5" fill="#F0ABFC"/>
+      <rect x="772" y="848" width="11" height="11" rx="2" fill="#C4B5FD"/>
+    </g>
+
+    <!-- Diamond/star (top right) -->
+    <g transform="translate(770, 340)">
+      <path d="M 0 -130 Q 8 -25 105 -10 Q 25 0 0 0 Z" fill="url(#diamondGradGreen)"/>
+      <path d="M 130 0 Q 25 8 10 105 Q 0 25 0 0 Z" fill="url(#diamondGradBlue)"/>
+      <path d="M 0 130 Q -8 25 -105 10 Q -25 0 0 0 Z" fill="url(#diamondGradPink)"/>
+      <path d="M -130 0 Q -25 -8 -10 -105 Q 0 -25 0 0 Z" fill="url(#diamondGradCyan)"/>
+      <path d="M 0 -130 Q -8 -25 -105 -10 Q -25 0 0 0 Z" fill="url(#diamondGradGreen)" opacity="0.95"/>
+      <path d="M 130 0 Q 25 -8 10 -105 Q 0 -25 0 0 Z" fill="url(#diamondGradBlue)" opacity="0.95"/>
+      <path d="M 0 130 Q 8 25 105 10 Q 25 0 0 0 Z" fill="url(#diamondGradPink)" opacity="0.95"/>
+      <path d="M -130 0 Q -25 8 -10 105 Q 0 25 0 0 Z" fill="url(#diamondGradCyan)" opacity="0.95"/>
+    </g>
+
+    <!-- 24/7 main text -->
+    <g font-family="'Arial Black', 'Helvetica Neue', sans-serif" font-weight="900" fill="#0A0A0A">
+      <text x="155" y="600" font-size="320" letter-spacing="-8">24</text>
+      <line x1="540" y1="650" x2="640" y2="430" stroke="#0A0A0A" stroke-width="28" stroke-linecap="round"/>
+      <text x="610" y="730" font-size="280" letter-spacing="-5">7</text>
+    </g>
+
+    <!-- News icon (paper) -->
+    <g transform="translate(720, 600)">
+      <rect x="6" y="14" width="180" height="170" rx="10" fill="#000" opacity="0.10"/>
+      <rect x="0" y="8" width="180" height="170" rx="10" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5"/>
+      <rect x="70" y="0" width="105" height="36" rx="5" fill="url(#newsTagGradient)"/>
+      <text x="122" y="25" font-family="'Arial Black', sans-serif" font-weight="900"
+            font-size="20" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">NEWS</text>
+      <rect x="14" y="50" width="55" height="50" rx="4" fill="url(#newsImgGradient)"/>
+      <rect x="78" y="55" width="88" height="5" rx="2.5" fill="#D1D5DB"/>
+      <rect x="78" y="68" width="78" height="5" rx="2.5" fill="#D1D5DB"/>
+      <rect x="78" y="81" width="84" height="5" rx="2.5" fill="#D1D5DB"/>
+      <rect x="78" y="94" width="65" height="5" rx="2.5" fill="#D1D5DB"/>
+      <rect x="14" y="115" width="152" height="5" rx="2.5" fill="#D1D5DB"/>
+      <rect x="14" y="128" width="146" height="5" rx="2.5" fill="#D1D5DB"/>
+      <rect x="14" y="141" width="150" height="5" rx="2.5" fill="#D1D5DB"/>
+      <rect x="14" y="154" width="110" height="5" rx="2.5" fill="#D1D5DB"/>
+    </g>
+
+    <!-- Pill banner -->
+    <g transform="translate(225, 800)">
+      <rect x="0" y="0" width="550" height="62" rx="31" fill="url(#pillGradient)"/>
+      <text x="275" y="41" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="700"
+            font-size="24" fill="#FFFFFF" text-anchor="middle" letter-spacing="2.5">CẬP NHẬT THÔNG TIN NHANH NHẤT</text>
+    </g>
+  </g>
+
+  <!-- Outer circle border (drawn last, over white fill, on top of all content) -->
+  <circle cx="500" cy="500" r="463" fill="none" stroke="url(#mainGradient)" stroke-width="5"/>
+</svg>
