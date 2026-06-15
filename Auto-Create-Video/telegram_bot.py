@@ -610,7 +610,7 @@ def send_script_approval(job_id: str, header: str = "📝 *Kịch Bản Đề Xu
         InlineKeyboardButton("✅ Duyệt & Render Video", callback_data=f"render_{job_id}"),
         InlineKeyboardButton("🔄 Viết lại (AI)", callback_data=f"rewrite_{job_id}"),
     )
-    markup.add(InlineKeyboardButton("❌ Bỏ qua tin này", callback_data=f"cancel_{job_id}"))
+    markup.add(InlineKeyboardButton("❌ Feed backup update", callback_data=f"cancel_{job_id}"))
 
     try:
         bot.edit_message_text(text, chat_id, msg_id, reply_markup=markup, parse_mode="MarkdownV2")
@@ -636,7 +636,7 @@ def handle_callback(call):
         return
 
     if action == "cancel":
-        bot.edit_message_text("❌ Đã bỏ qua tin tức này.", chat_id, call.message.message_id)
+        bot.edit_message_text("❌ Đã feed backup update.", chat_id, call.message.message_id)
         del sessions[job_id]
 
     elif action == "rewrite":
