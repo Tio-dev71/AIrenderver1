@@ -340,9 +340,14 @@ def generate_script_json(article: dict) -> dict | None:
         )
         text = response.content[0].text.strip()
 
-        # Strip markdown code fences if present
-        text = re.sub(r"^```(?:json)?\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
+        # Extract JSON block robustly
+        start_idx = text.find('{')
+        end_idx = text.rfind('}')
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            text = text[start_idx:end_idx+1]
+        else:
+            print("⚠️ Không tìm thấy JSON block trong response.")
+            return None
 
         script = json.loads(text)
 
@@ -388,8 +393,14 @@ def rewrite_script_json(script: dict) -> dict:
             messages=[{"role": "user", "content": prompt}],
         )
         text = response.content[0].text.strip()
-        text = re.sub(r"^```(?:json)?\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
+        
+        start_idx = text.find('{')
+        end_idx = text.rfind('}')
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            text = text[start_idx:end_idx+1]
+        else:
+            print("⚠️ Không tìm thấy JSON block khi viết lại.")
+            return script
 
         new_script = json.loads(text)
         if "scenes" in new_script and len(new_script["scenes"]) >= 5:
