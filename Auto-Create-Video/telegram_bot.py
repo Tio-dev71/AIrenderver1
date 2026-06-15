@@ -455,7 +455,14 @@ def enforce_schema_limits(script: dict) -> dict:
             return fallback
         return val[:limit]
 
-    for scene in script.get("scenes", []):
+    for i, scene in enumerate(script.get("scenes", [])):
+        if "id" not in scene:
+            scene["id"] = f"scene-{i+1}"
+        if "type" not in scene:
+            scene["type"] = "hook" if i == 0 else "body"
+        if "voiceText" not in scene:
+            scene["voiceText"] = "Tin tức tiền điện tử hôm nay."
+            
         td = scene.get("templateData", {})
         tpl = td.get("template")
         
