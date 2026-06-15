@@ -78,22 +78,26 @@ def save_scanned_url(url: str):
 
 # ─── Article scraping ────────────────────────────────────────────────────────
 
+import requests
+
 def extract_latest_links(source_url: str, max_links: int = 5) -> list[str]:
     """Extract latest article links from RSS feed or HTML page."""
     try:
         # Try RSS first
         if "feed" in source_url.lower() or "rss" in source_url.lower() or source_url.endswith(".xml"):
-            feed = feedparser.parse(source_url)
+            # feedparser can hang, use requests to fetch the XML first
+            resp = requests.get(source_url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+            feed = feedparser.parse(resp.content)
             if feed.entries:
                 return [entry.link for entry in feed.entries[:max_links]]
 
         # Fallback to HTML scraping
-        req = urllib.request.Request(
+        resp = requests.get(
             source_url,
-            headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
+            headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7 AppleWebKit/537.36)"},
+            timeout=15
         )
-        with urllib.request.urlopen(req, timeout=15) as response:
-            html = response.read()
+        html = resp.text
 
         soup = BeautifulSoup(html, "html.parser")
         base_domain = urllib.parse.urlparse(source_url).netloc
@@ -119,16 +123,16 @@ def extract_latest_links(source_url: str, max_links: int = 5) -> list[str]:
 def scrape_article(url: str) -> dict:
     """Scrape article content from URL. Returns dict with title, content, ogImage, domain."""
     try:
-        req = urllib.request.Request(
+        resp = requests.get(
             url,
             headers={
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7 AppleWebKit/537.36)",
                 "Accept": "text/html,application/xhtml+xml",
-            }
+            },
+            timeout=15
         )
-        with urllib.request.urlopen(req, timeout=18) as response:
-            raw = response.read(2_500_000)
-        html_text = raw.decode("utf-8", errors="replace")
+        resp.encoding = 'utf-8'
+        html_text = resp.text
         soup = BeautifulSoup(html_text, "html.parser")
 
         # Extract metadata
