@@ -282,6 +282,7 @@ voiceText sẽ được AI đọc thành tiếng. SỐ VÀ KÝ HIỆU BỊ ĐỌ
 - Tên thương hiệu Anh giữ nguyên: Bitcoin, Ethereum, Apple OK
 - KHÔNG emoji, KHÔNG markdown, KHÔNG URL trong voiceText
 - Kết thúc mỗi câu bằng dấu chấm (.) hoặc dấu hỏi (?)
+- BẮT BUỘC: Luôn mở đầu mỗi câu (đặc biệt là câu đầu tiên của scene 1) bằng các từ thuần Việt (ví dụ: 'Tin nóng', 'Thị trường', 'Mới đây', 'Hôm nay') để ElevenLabs không bị lai giọng ngoại quốc.
 - templateData (text hiển thị trên màn hình) GIỮ NGUYÊN dạng số/ký hiệu gốc
 
 ## Nội dung tập trung CRYPTO / BLOCKCHAIN
@@ -312,6 +313,7 @@ REWRITE_PROMPT = """Bạn là chuyên gia viết kịch bản video tin tức cr
 Dưới đây là script.json hiện tại. Hãy VIẾT LẠI các voiceText cho mượt mà, chuyên nghiệp, tự nhiên khi đọc to.
 Giữ nguyên cấu trúc JSON, metadata, template types. Chỉ thay đổi voiceText.
 Tuân thủ quy tắc TTS tiếng Việt: viết phonetic cho tất cả số/ký hiệu.
+BẮT BUỘC: Luôn mở đầu mỗi câu bằng các từ thuần Việt để AI không bị đọc lai giọng ngoại quốc.
 
 Trả về ĐÚNG 1 JSON object hoàn chỉnh, không markdown, không giải thích.
 
@@ -327,6 +329,7 @@ Dưới đây là script.json hiện tại. Người dùng vừa gửi yêu cầ
 Hãy VIẾT LẠI script.json theo đúng yêu cầu trên.
 Giữ nguyên cấu trúc JSON, metadata, template types. Chỉ thay đổi nội dung cần thiết.
 Tuân thủ quy tắc TTS tiếng Việt: viết phonetic cho tất cả số/ký hiệu.
+BẮT BUỘC: Luôn mở đầu mỗi câu bằng các từ thuần Việt để AI không bị đọc lai giọng ngoại quốc.
 
 Trả về ĐÚNG 1 JSON object hoàn chỉnh, không markdown, không giải thích.
 
