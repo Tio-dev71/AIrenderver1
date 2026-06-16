@@ -12,9 +12,9 @@ const GRAIN_OVERLAY_HTML = ``;
 
 // Default TikTok config (used if not passed)
 const DEFAULT_TIKTOK: TiktokConfig = {
-  displayName: "Công nghệ 24h",
-  handle: "@congnghe24h",
-  followers: "1.2M followers",
+  displayName: "Hedra Central",
+  handle: "@hedracentral",
+  followers: "100K followers",
 };
 
 export interface SceneAudio {
