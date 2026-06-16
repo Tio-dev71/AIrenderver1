@@ -39,6 +39,9 @@ load_dotenv(ROOT / ".env")
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 TELEGRAM_GROUP_ID = os.environ.get("TELEGRAM_GROUP_ID", "")
+TTS_PROVIDER = os.environ.get("TTS_PROVIDER", "lucylab")
+ELEVENLABS_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "EXAVITQu4vr4xnSDxMaL")
+VIETNAMESE_VOICEID = os.environ.get("VIETNAMESE_VOICEID", "")
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
 NEWS_SOURCES = os.environ.get("NEWS_SOURCES", "")
 SCAN_INTERVAL_MINUTES = int(os.environ.get("SCAN_INTERVAL_MINUTES", "60"))
@@ -449,6 +452,13 @@ def enforce_schema_limits(script: dict) -> dict:
     """Ensure generated script matches Zod limits to prevent Node.js crashes."""
     if not isinstance(script, dict):
         return script
+        
+    if "voice" not in script or not isinstance(script["voice"], dict):
+        script["voice"] = {}
+    script["voice"]["provider"] = TTS_PROVIDER
+    script["voice"]["voiceId"] = ELEVENLABS_VOICE_ID if TTS_PROVIDER == "elevenlabs" else VIETNAMESE_VOICEID
+    if "speed" not in script["voice"]:
+        script["voice"]["speed"] = 1.0
         
     def _trunc(val, limit: int, fallback: str = "N/A") -> str:
         if not val or not isinstance(val, str):
