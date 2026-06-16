@@ -10,6 +10,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import subprocess
@@ -988,4 +989,9 @@ if __name__ == "__main__":
             print(f"⚠️ Không thể gửi tin vào Group {TELEGRAM_GROUP_ID}: {e}")
 
     print("\n🟢 Bot đang chạy... Nhấn Ctrl+C để dừng.\n")
-    bot.infinity_polling()
+    while True:
+        try:
+            bot.infinity_polling(timeout=20, logger_level=logging.ERROR)
+        except Exception as e:
+            print(f"⚠️ Lỗi kết nối Telegram (sẽ thử lại sau 5s): {e}")
+            time.sleep(5)
