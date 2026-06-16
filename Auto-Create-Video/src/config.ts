@@ -84,7 +84,7 @@ export function loadConfig(): Config {
     lucylabPollTimeoutMs: intDefault("LUCYLAB_POLL_TIMEOUT_MS", 120000),
     elevenlabsApiKey: process.env.ELEVENLABS_API_KEY,
     elevenlabsVoiceId: process.env.ELEVENLABS_VOICE_ID,
-    elevenlabsModelId: process.env.ELEVENLABS_MODEL_ID ?? "eleven_multilingual_v2",
+    elevenlabsModelId: process.env.ELEVENLABS_MODEL_ID ?? "eleven_turbo_v2_5",
     elevenlabsEndpoint: process.env.ELEVENLABS_ENDPOINT ?? "https://api.elevenlabs.io/v1",
     tiktok: {
       displayName: process.env.TIKTOK_DISPLAY_NAME ?? "Công nghệ 24h",
