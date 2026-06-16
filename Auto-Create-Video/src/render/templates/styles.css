@@ -179,8 +179,8 @@ html, body {
 
 .hook-headline {
   font-family: 'Anton', 'Inter', sans-serif;
-  font-size: 160px; font-weight: 900;
-  color: #fff; line-height: 1.0;
+  font-size: 110px; font-weight: 900;
+  color: #fff; line-height: 1.1;
   text-align: center; letter-spacing: -0.02em;
   text-shadow: 0 4px 40px rgba(0,0,0,0.8);
   display: block; width: 100%;
@@ -189,8 +189,8 @@ html, body {
 
 .hook-subhead {
   font-family: 'Inter', sans-serif;
-  font-size: 80px; font-weight: 800;
-  color: #22d3ee; line-height: 1.1;
+  font-size: 65px; font-weight: 800;
+  color: #22d3ee; line-height: 1.2;
   text-align: center;
   text-shadow: 0 0 40px rgba(34,211,238,0.5);
   margin-top: 32px;
@@ -222,14 +222,14 @@ html, body {
 
 .cmp-label {
   font-family: 'Inter', sans-serif;
-  font-size: 40px; font-weight: 500;
+  font-size: 32px; font-weight: 500;
   color: rgba(255,255,255,0.7);
   text-transform: uppercase; letter-spacing: 3px;
 }
 
 .cmp-value {
   font-family: 'Anton', 'Inter', sans-serif;
-  font-size: 110px; font-weight: 900;
+  font-size: 85px; font-weight: 900;
   color: #fff; line-height: 1.0;
   letter-spacing: -0.02em;
 }
@@ -268,7 +268,7 @@ html, body {
 
 .stat-value {
   font-family: 'Anton', 'Bebas Neue', sans-serif;
-  font-size: 220px; font-weight: 900;
+  font-size: 160px; font-weight: 900;
   color: #22d3ee; line-height: 1.0;
   letter-spacing: -0.02em;
   text-shadow: 0 0 80px rgba(34,211,238,0.5);
@@ -278,7 +278,7 @@ html, body {
 
 .stat-label {
   font-family: 'Inter', sans-serif;
-  font-size: 64px; font-weight: 700;
+  font-size: 50px; font-weight: 700;
   color: #fff; line-height: 1.2;
   text-align: center;
   opacity: 0;
@@ -314,7 +314,7 @@ html, body {
 
 .feat-title {
   font-family: 'Inter', sans-serif;
-  font-size: 60px; font-weight: 700;
+  font-size: 50px; font-weight: 700;
   color: #a855f7; line-height: 1.2;
   margin-bottom: 0;
 }
@@ -382,7 +382,7 @@ html, body {
 
 .callout-statement {
   font-family: 'Inter', sans-serif;
-  font-size: 64px; font-weight: 600;
+  font-size: 50px; font-weight: 600;
   color: #fff; line-height: 1.35;
 }
 

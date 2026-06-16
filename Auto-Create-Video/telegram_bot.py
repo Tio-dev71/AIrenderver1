@@ -467,31 +467,31 @@ def enforce_schema_limits(script: dict) -> dict:
         tpl = td.get("template")
         
         if tpl == "hook":
-            td["headline"] = _trunc(td.get("headline"), 40, "Tin tức Crypto")
+            td["headline"] = _trunc(td.get("headline"), 25, "Tin tức Crypto")
             if "subhead" in td:
-                td["subhead"] = _trunc(td.get("subhead"), 40)
+                td["subhead"] = _trunc(td.get("subhead"), 30)
         elif tpl == "comparison":
             left = td.get("left", {})
             left["label"] = _trunc(left.get("label"), 30, "Lựa chọn 1")
-            left["value"] = _trunc(left.get("value"), 20, "???")
+            left["value"] = _trunc(left.get("value"), 15, "???")
             td["left"] = left
             right = td.get("right", {})
             right["label"] = _trunc(right.get("label"), 30, "Lựa chọn 2")
-            right["value"] = _trunc(right.get("value"), 20, "???")
+            right["value"] = _trunc(right.get("value"), 15, "???")
             td["right"] = right
         elif tpl == "stat-hero":
-            td["label"] = _trunc(td.get("label"), 40, "Chỉ số quan trọng")
-            td["value"] = _trunc(td.get("value"), 20, "0%")
+            td["label"] = _trunc(td.get("label"), 30, "Chỉ số quan trọng")
+            td["value"] = _trunc(td.get("value"), 15, "0%")
             if "context" in td:
-                td["context"] = _trunc(td.get("context"), 50)
+                td["context"] = _trunc(td.get("context"), 40)
         elif tpl == "feature-list":
-            td["title"] = _trunc(td.get("title"), 40, "Điểm nổi bật")
+            td["title"] = _trunc(td.get("title"), 30, "Điểm nổi bật")
             bullets = td.get("bullets", [])
             if not isinstance(bullets, list) or not bullets:
                 bullets = ["Không có thông tin"]
-            td["bullets"] = [_trunc(b, 50, "Mục") for b in bullets[:4]]
+            td["bullets"] = [_trunc(b, 40, "Mục") for b in bullets[:4]]
         elif tpl == "callout":
-            td["statement"] = _trunc(td.get("statement"), 80, "Cần lưu ý quan trọng")
+            td["statement"] = _trunc(td.get("statement"), 50, "Cần lưu ý quan trọng")
             if "tag" in td:
                 td["tag"] = _trunc(td.get("tag"), 20)
         elif tpl == "outro":

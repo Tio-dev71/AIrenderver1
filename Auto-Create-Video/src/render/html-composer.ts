@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const TPL_DIR = join(__dirname, "templates");
 
 // Grain overlay HTML inline (from installed component)
-const GRAIN_OVERLAY_HTML = `<div id="grain-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100;"><div class="grain-texture"></div></div>`;
+const GRAIN_OVERLAY_HTML = ``;
 
 // Default TikTok config (used if not passed)
 const DEFAULT_TIKTOK: TiktokConfig = {
@@ -86,7 +86,7 @@ function renderShell(metadata: Script["metadata"], tiktok: TiktokConfig): string
 <div class="shell-bg"></div>
 
 <div class="brand-shell-header">
-  <div class="brand-icon">&gt;_</div>
+  <img class="brand-icon" src="../../hedra-logo.jpg" style="padding:0; background:none; object-fit: cover; border: 2px solid rgba(255,255,255,0.1);">
   <div class="brand-text">
     <div class="brand-name">${channel}</div>
     <div class="brand-tag">TIN CÔNG NGHỆ</div>
