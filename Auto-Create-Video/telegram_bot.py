@@ -89,7 +89,6 @@ def extract_latest_links(source_url: str, max_links: int = 5) -> list[str]:
     try:
         # Try RSS first
         if "feed" in source_url.lower() or "rss" in source_url.lower() or source_url.endswith(".xml"):
-            # feedparser can hang, use requests to fetch the XML first
             resp = requests.get(source_url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
             feed = feedparser.parse(resp.content)
             if feed.entries:
@@ -98,12 +97,10 @@ def extract_latest_links(source_url: str, max_links: int = 5) -> list[str]:
         # Fallback to HTML scraping
         resp = requests.get(
             source_url,
-            headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7 AppleWebKit/537.36)"},
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
             timeout=15
         )
-        html = resp.text
-
-        soup = BeautifulSoup(html, "html.parser")
+        soup = BeautifulSoup(resp.text, "html.parser")
         base_domain = urllib.parse.urlparse(source_url).netloc
 
         links = []
@@ -111,14 +108,17 @@ def extract_latest_links(source_url: str, max_links: int = 5) -> list[str]:
             href = a["href"]
             full_url = urllib.parse.urljoin(source_url, href)
 
-            # Filter: same domain, long enough (skip homepage/category links)
-            if base_domain in full_url and len(full_url) > len(source_url) + 15:
-                if "/tag/" not in full_url and "/author/" not in full_url and "/category/" not in full_url:
+            if base_domain in full_url and full_url != source_url:
+                if any(bad in full_url.lower() for bad in ["/tag/", "/author/", "/category/", "/page/", "/chuyen-muc/", "/kien-thuc", "/huong-dan", "/series/"]):
+                    continue
+
+                path = urllib.parse.urlparse(full_url).path.rstrip('/')
+                slug = path.split('/')[-1] if path else ""
+
+                if slug.count('-') >= 3 and len(slug) >= 20:
                     if full_url not in links:
                         links.append(full_url)
-            if len(links) >= max_links:
-                break
-        return links
+        return links[:max_links]
     except Exception as e:
         print(f"❌ Lỗi khi quét {source_url}: {e}")
         return []
