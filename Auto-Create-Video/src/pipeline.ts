@@ -72,7 +72,7 @@ export async function runPipeline(scriptPath: string): Promise<void> {
   const voiceDir = join(outputDir, "voice");
   await mkdir(voiceDir, { recursive: true });
 
-  const sceneAudioPromises = script.scenes.map((scene) =>
+  const sceneAudioPromises = script.scenes.map((scene, i, arr) =>
     limit(async () => {
       const out = join(voiceDir, `scene-${scene.id}.mp3`);
       const srtOut = join(voiceDir, `scene-${scene.id}.srt`);
@@ -86,8 +86,11 @@ export async function runPipeline(scriptPath: string): Promise<void> {
         return { id: scene.id, path: out, durationSec: dur };
       }
 
+      const prevText = i > 0 ? arr[i - 1].voiceText : undefined;
+      const nextText = i < arr.length - 1 ? arr[i + 1].voiceText : undefined;
+
       log.info(`  TTS scene ${scene.id} (${scene.voiceText.length} chars)...`);
-      await ttsClient.generate(scene.voiceText, out, srtOut);
+      await ttsClient.generate(scene.voiceText, out, srtOut, prevText, nextText);
       const dur = await getDurationSec(out);
       log.info(`  scene ${scene.id}: ${dur.toFixed(2)}s`);
       return { id: scene.id, path: out, durationSec: dur };

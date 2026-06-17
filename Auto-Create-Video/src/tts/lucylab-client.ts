@@ -33,7 +33,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class LucylabClient implements TtsClient {
   constructor(private cfg: LucylabOpts) {}
 
-  async generate(text: string, audioOutPath: string, srtOutPath?: string): Promise<void> {
+  async generate(text: string, audioOutPath: string, srtOutPath?: string, _previousText?: string, _nextText?: string): Promise<void> {
     const projectExportId = await this.submitWithRetry(text);
     const { url, srtUrl } = await this.pollUntilDone(projectExportId);
     await this.download(url, audioOutPath);
