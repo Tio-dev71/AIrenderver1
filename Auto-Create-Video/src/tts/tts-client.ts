@@ -10,7 +10,7 @@ export interface TtsClient {
    * If `srtOutPath` is provided AND the provider supports subtitles,
    * write the SRT to that path. Otherwise silently skip.
    */
-  generate(text: string, audioOutPath: string, srtOutPath?: string, previousText?: string, nextText?: string): Promise<void>;
+  generate(text: string, audioOutPath: string, srtOutPath?: string): Promise<void>;
 }
 
 import type { Config } from "../config.js";

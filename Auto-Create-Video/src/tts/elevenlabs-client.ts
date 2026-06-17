@@ -25,28 +25,24 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class ElevenLabsClient implements TtsClient {
   constructor(private cfg: ElevenLabsOpts) {}
 
-  async generate(text: string, audioOutPath: string, _srtOutPath?: string, previousText?: string, nextText?: string): Promise<void> {
-    await this.synthesizeWithRetry(text, audioOutPath, previousText, nextText);
+  async generate(text: string, audioOutPath: string, _srtOutPath?: string): Promise<void> {
+    await this.synthesizeWithRetry(text, audioOutPath);
     // ElevenLabs has no SRT — silently skip srtOutPath.
   }
 
-  private async synthesizeWithRetry(text: string, outPath: string, previousText?: string, nextText?: string): Promise<void> {
+  private async synthesizeWithRetry(text: string, outPath: string): Promise<void> {
     const delays = [1000, 2000, 4000];
     let lastErr: unknown;
 
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
         const url = `${this.cfg.endpoint}/text-to-speech/${this.cfg.voiceId}`;
-        const payload: Record<string, any> = {
-          text,
-          model_id: this.cfg.modelId,
-        };
-        if (previousText) payload.previous_text = previousText;
-        if (nextText) payload.next_text = nextText;
-
         const resp = await axios.post<ArrayBuffer>(
           url,
-          payload,
+          {
+            text,
+            model_id: this.cfg.modelId,
+          },
           {
             headers: {
               "xi-api-key": this.cfg.apiKey,
