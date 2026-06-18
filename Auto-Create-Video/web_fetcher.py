@@ -8,6 +8,7 @@ Usage:
     if result["error"]:
         error_type = classify_error(result["error"])
 """
+from __future__ import annotations
 
 import re
 import time
