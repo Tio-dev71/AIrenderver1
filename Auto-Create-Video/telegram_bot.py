@@ -142,7 +142,7 @@ def scrape_article(url: str) -> dict:
         meta = web_fetcher.extract_metadata(raw_html, url)
         
         content = result.get("content", "")
-        content = content[:3000]  # Cap at 3000 chars to save tokens
+        content = content[:8000]  # Cap at 8000 chars to save tokens (but allow enough detail)
 
         return {
             "title": meta.get("title") or "Không có tiêu đề",
@@ -204,7 +204,7 @@ Dựa trên bài báo bên dưới, hãy sinh ra một file JSON hoàn chỉnh t
     "speed": 1.0
   },
   "scenes": [
-    // 5-8 scenes, scene đầu type="hook", scene cuối type="outro", còn lại type="body"
+    // 8-12 scenes, scene đầu type="hook", scene cuối type="outro", còn lại type="body"
   ]
 }
 ```
@@ -285,15 +285,15 @@ Tags ẩn dụ / thử nghiệm:
 - Giọng điệu: chuyên nghiệp, dễ hiểu, như MC truyền hình tài chính
 - Câu ngắn gọn, súc tích, max 30 từ/câu
 
-## Cấu trúc scenes (5-8 scenes)
+## Cấu trúc scenes (8-12 scenes)
 - Scene 1: type="hook", template="hook" — câu gây tò mò, có số liệu
 - Scene 2-N: type="body" — đa dạng template (stat-hero, comparison, feature-list, callout)
 - Scene cuối: type="outro", template="outro"
 
 ## Quan trọng
 - Trả về ĐÚNG 1 JSON object, không markdown, không giải thích
-- voiceText tổng ~150-200 từ → ~55-65 giây
-- Mỗi scene voiceText 1-3 câu ngắn
+- voiceText tổng ~350-450 từ → ~2 - 2.5 phút
+- Mỗi scene voiceText 3-5 câu chi tiết, phân tích sâu nội dung
 
 ## Bài báo gốc
 Tiêu đề: {title}
@@ -344,7 +344,7 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
                           .replace("{title}", article["title"]) \
                           .replace("{domain}", article["domain"]) \
                           .replace("{og_image}", article["ogImage"] or "null") \
-                          .replace("{content}", article["content"][:2000])
+                          .replace("{content}", article["content"][:8000])
 
     try:
         headers = {
@@ -357,8 +357,8 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": "Tạo kịch bản JSON cho bài báo trên."}
             ],
-            "temperature": 0.2,
-            "max_tokens": 4096,
+            "temperature": 0.3,
+            "max_tokens": 8192,
             "response_format": {"type": "json_object"}
         }
         
@@ -385,8 +385,8 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
             return None
 
         scenes = script.get("scenes", [])
-        if len(scenes) < 5 or len(scenes) > 8:
-            print(f"⚠️ AI sinh {len(scenes)} scenes (cần 5-8). Giữ nguyên.")
+        if len(scenes) < 5 or len(scenes) > 12:
+            print(f"⚠️ AI sinh {len(scenes)} scenes (cần 5-12). Giữ nguyên.")
 
         if scenes[0].get("type") != "hook":
             print("⚠️ Scene đầu không phải hook, sửa lại.")
@@ -436,8 +436,8 @@ def rewrite_script_json(script: dict, instruction: str = None) -> tuple[dict, di
             "messages": [
                 {"role": "system", "content": prompt}
             ],
-            "temperature": 0.2,
-            "max_tokens": 4096,
+            "temperature": 0.3,
+            "max_tokens": 8192,
             "response_format": {"type": "json_object"}
         }
         
