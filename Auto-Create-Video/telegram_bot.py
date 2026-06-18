@@ -981,15 +981,15 @@ if __name__ == "__main__":
         print("❌ Vui lòng cấu hình TELEGRAM_BOT_TOKEN trong file .env!")
         sys.exit(1)
 
-    if not ANTHROPIC_KEY:
-        print("⚠️ Chưa có ANTHROPIC_API_KEY — bot sẽ không thể tạo kịch bản AI.")
+    if not DEEPSEEK_KEY:
+        print("⚠️ Chưa có DEEPSEEK_API_KEY — bot sẽ không thể tạo kịch bản AI.")
 
     print("=" * 60)
     print("🚀 Auto News Video — Telegram Bot")
     print("=" * 60)
     print(f"  🤖 Bot Token: ...{BOT_TOKEN[-8:]}")
     print(f"  📱 Group ID: {TELEGRAM_GROUP_ID}")
-    print(f"  🧠 AI Model: {CLAUDE_MODEL}")
+    print(f"  🧠 AI Model: {AI_MODEL}")
     print(f"  🎤 TTS: {TTS_PROVIDER}")
     print(f"  ⏰ Scan interval: {SCAN_INTERVAL_MINUTES} phút")
     print(f"  📰 Sources: {len([s for s in NEWS_SOURCES.split(',') if s.strip()])} trang")
