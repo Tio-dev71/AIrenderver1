@@ -7,3 +7,4 @@ python-dotenv>=1.0.0
 urllib3<2
 trafilatura>=1.6.0
 playwright>=1.39.0
+lxml_html_clean>=0.1.1
