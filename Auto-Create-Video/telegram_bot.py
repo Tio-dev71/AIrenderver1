@@ -610,7 +610,7 @@ def show_status(message):
         f"📰 Đã quét: {len(scanned)} bài\n"
         f"⏰ Quét tự động: mỗi {SCAN_INTERVAL_MINUTES} phút\n"
         f"🎤 TTS: {TTS_PROVIDER}\n"
-        f"🧠 AI Model: {CLAUDE_MODEL}\n"
+        f"🧠 AI Model: {AI_MODEL}\n"
         f"📂 Đang chờ duyệt: {len(sessions)} job"
     )
     bot.reply_to(message, text, parse_mode="Markdown")
@@ -1009,7 +1009,7 @@ if __name__ == "__main__":
                 "🤖 *Auto News Video Bot* đã khởi động\\!\n\n"
                 f"⏰ Tự động quét mỗi {SCAN_INTERVAL_MINUTES} phút\n"
                 f"🎤 TTS: {_escape_md(TTS_PROVIDER)}\n"
-                f"🧠 AI: {_escape_md(CLAUDE_MODEL)}\n\n"
+                f"🧠 AI: {_escape_md(AI_MODEL)}\n\n"
                 "Gõ /scan để quét ngay, hoặc gửi link bài báo\\.",
                 parse_mode="MarkdownV2"
             )
