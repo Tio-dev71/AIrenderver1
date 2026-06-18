@@ -95,12 +95,11 @@ def extract_latest_links(source_url: str, max_links: int = 5) -> list[str]:
                 return [entry.link for entry in feed.entries[:max_links]]
 
         # Fallback to HTML scraping
-        resp = requests.get(
-            source_url,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
-            timeout=15
-        )
-        soup = BeautifulSoup(resp.text, "html.parser")
+        result = web_fetcher.fetch_content(source_url)
+        if not result["success"]:
+            return []
+            
+        soup = BeautifulSoup(result.get("raw_html", ""), "html.parser")
         base_domain = urllib.parse.urlparse(source_url).netloc
 
         links = []
