@@ -928,7 +928,7 @@ def scan_news_job(manual_chat_id=None):
                     save_scanned_url(url)
                     continue
 
-                script = generate_script_json(article)
+                script, usage = generate_script_json(article)
                 if not script:
                     print(f"  ⚠️ AI không thể tạo kịch bản, bỏ qua.")
                     save_scanned_url(url)
