@@ -27,6 +27,7 @@ import schedule
 import telebot
 import urllib.request
 import urllib.parse
+import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -338,18 +339,18 @@ Script hiện tại:
 
 
 def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
-    """Use Deepseek API to generate script.json matching Auto-Create-Video Zod schema."""
+    """Use Deepseek API to generate script.json."""
     if not DEEPSEEK_KEY:
-        print("⚠️ Chưa có DEEPSEEK_API_KEY, không thể sinh script.")
-        return None, None
+        return None
 
-    prompt = SCRIPT_PROMPT.replace("{title}", article["title"]) \
+    voice_id = ELEVENLABS_VOICE_ID if TTS_PROVIDER == "elevenlabs" else VIETNAMESE_VOICEID
+    prompt = SCRIPT_PROMPT.replace("{VOICE_ID}", voice_id) \
+                          .replace("{title}", article["title"]) \
                           .replace("{domain}", article["domain"]) \
                           .replace("{og_image}", article["ogImage"] or "null") \
                           .replace("{content}", article["content"][:2000])
 
     try:
-        import requests
         headers = {
             "Authorization": f"Bearer {DEEPSEEK_KEY}",
             "Content-Type": "application/json",
@@ -358,7 +359,7 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
             "model": AI_MODEL,
             "messages": [
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": "Tạo kịch bản JSON cho bài báo trên theo đúng Schema."}
+                {"role": "user", "content": "Tạo kịch bản JSON cho bài báo trên."}
             ],
             "temperature": 0.2,
             "max_tokens": 4096,
@@ -430,7 +431,25 @@ def rewrite_script_json(script: dict, instruction: str = None) -> tuple[dict, di
         prompt = REWRITE_PROMPT.replace("{script_json}", json.dumps(script, ensure_ascii=False, indent=2))
 
     try:
-        text = response.content[0].text.strip()
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_KEY}",
+            "Content-Type": "application/json",
+        }
+        body = {
+            "model": AI_MODEL,
+            "messages": [
+                {"role": "system", "content": prompt}
+            ],
+            "temperature": 0.2,
+            "max_tokens": 4096,
+            "response_format": {"type": "json_object"}
+        }
+        
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=body, timeout=120)
+        response.raise_for_status()
+        data = response.json()
+        
+        text = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
         
         start_idx = text.find('{')
         end_idx = text.rfind('}')
@@ -438,17 +457,19 @@ def rewrite_script_json(script: dict, instruction: str = None) -> tuple[dict, di
             text = text[start_idx:end_idx+1]
         else:
             print("⚠️ Không tìm thấy JSON block khi viết lại.")
-            return script
+            return script, None
 
         new_script = json.loads(text)
+        
+        # Lấy thông tin usage tokens
         usage = {
-            "input_tokens": response.usage.input_tokens if hasattr(response.usage, 'input_tokens') else 0,
-            "output_tokens": response.usage.output_tokens if hasattr(response.usage, 'output_tokens') else 0
+            "input_tokens": data.get("usage", {}).get("prompt_tokens", 0),
+            "output_tokens": data.get("usage", {}).get("completion_tokens", 0)
         }
         
         if "scenes" in new_script and len(new_script["scenes"]) >= 5:
             new_script = enforce_schema_limits(new_script)
-            print("✅ Claude đã viết lại script.json")
+            print("✅ Deepseek đã viết lại script.json")
             return new_script, usage
         else:
             print("⚠️ AI trả về script không hợp lệ. Giữ bản cũ.")
