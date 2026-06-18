@@ -262,6 +262,24 @@ voiceText sẽ được AI đọc thành tiếng. SỐ VÀ KÝ HIỆU BỊ ĐỌ
 - BẮT BUỘC: Luôn mở đầu mỗi câu (đặc biệt là câu đầu tiên của scene 1) bằng các từ thuần Việt (ví dụ: 'Tin nóng', 'Thị trường', 'Mới đây', 'Hôm nay') để ElevenLabs không bị lai giọng ngoại quốc.
 - templateData (text hiển thị trên màn hình) GIỮ NGUYÊN dạng số/ký hiệu gốc
 
+## Cảm xúc và nhấn nhá (chỉ dành cho voiceText khi dùng ElevenLabs V3)
+Đặt tag [tag] ở đầu hoặc cuối câu/đoạn để voice đọc có nhấn nhá, cảm xúc hơn. Có thể đặt inline nếu cần đổi cảm xúc giữa câu. Không spam tag, chỉ thêm ở chỗ thật sự cần.
+
+Nguyên tắc:
+- Chỉ tag âm thanh nghe được từ giọng nói — không dùng [standing], [grinning], [pacing], [music]
+- Không biến narrative thành tag
+- Không thêm từ mới vào text gốc, không đổi nghĩa
+- Dùng [short pause] / [long pause] hoặc dấu ... để tạo khoảng nghỉ.
+
+Tags cảm xúc / giọng đọc:
+[happy], [excited], [surprised], [curious], [thoughtful], [confident], [reassuring], [warmly], [serious], [playful], [sarcastic], [affirmative], [impressed], [sad], [angry], [annoyed], [appalled], [mischievously], [softly], [calmly], [dramatically], [professionally], [professional]
+
+Tags phi ngôn ngữ (giọng nói):
+[laughs], [laughing], [chuckles], [giggles], [wheezing], [snorts], [crying], [sighs], [exhales], [exhales sharply], [inhales deeply], [whispers], [shouts], [singing], [woo], [clears throat], [short pause], [long pause]
+
+Tags ẩn dụ / thử nghiệm:
+[strong French accent], [strong Russian accent]
+
 ## Nội dung tập trung CRYPTO / BLOCKCHAIN
 - Ưu tiên biến động giá, phần trăm thay đổi, market cap
 - Hook phải có số liệu hoặc claim gây tò mò, KHÔNG dùng câu chung chung
@@ -291,6 +309,7 @@ Dưới đây là script.json hiện tại. Hãy VIẾT LẠI các voiceText cho
 Giữ nguyên cấu trúc JSON, metadata, template types. Chỉ thay đổi voiceText.
 Tuân thủ quy tắc TTS tiếng Việt: viết phonetic cho tất cả số/ký hiệu.
 BẮT BUỘC: Luôn mở đầu mỗi câu bằng các từ thuần Việt để AI không bị đọc lai giọng ngoại quốc.
+Hỗ trợ chèn các emotion tags của ElevenLabs (vd: [excited], [serious], [short pause]) vào đầu/cuối voiceText hoặc nội tuyến để tăng cảm xúc, nhấn nhá nếu cần thiết.
 
 Trả về ĐÚNG 1 JSON object hoàn chỉnh, không markdown, không giải thích.
 
@@ -307,6 +326,7 @@ Hãy VIẾT LẠI script.json theo đúng yêu cầu trên.
 Giữ nguyên cấu trúc JSON, metadata, template types. Chỉ thay đổi nội dung cần thiết.
 Tuân thủ quy tắc TTS tiếng Việt: viết phonetic cho tất cả số/ký hiệu.
 BẮT BUỘC: Luôn mở đầu mỗi câu bằng các từ thuần Việt để AI không bị đọc lai giọng ngoại quốc.
+Hỗ trợ chèn các emotion tags của ElevenLabs (vd: [excited], [serious], [short pause]) vào đầu/cuối voiceText hoặc nội tuyến để tăng cảm xúc, nhấn nhá nếu cần thiết.
 
 Trả về ĐÚNG 1 JSON object hoàn chỉnh, không markdown, không giải thích.
 
