@@ -27,7 +27,6 @@ import schedule
 import telebot
 import urllib.request
 import urllib.parse
-from anthropic import Anthropic
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -38,12 +37,12 @@ ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env")
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+DEEPSEEK_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 TELEGRAM_GROUP_ID = os.environ.get("TELEGRAM_GROUP_ID", "")
 TTS_PROVIDER = os.environ.get("TTS_PROVIDER", "lucylab")
 ELEVENLABS_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "EXAVITQu4vr4xnSDxMaL")
 VIETNAMESE_VOICEID = os.environ.get("VIETNAMESE_VOICEID", "")
-CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
+AI_MODEL = os.environ.get("AI_MODEL", "deepseek-chat")
 NEWS_SOURCES = os.environ.get("NEWS_SOURCES", "")
 SCAN_INTERVAL_MINUTES = int(os.environ.get("SCAN_INTERVAL_MINUTES", "60"))
 
@@ -55,7 +54,6 @@ SCANNED_URLS_FILE = ROOT / "scanned_urls.json"
 OUTPUT_DIR = ROOT / "output"
 
 bot = telebot.TeleBot(BOT_TOKEN) if BOT_TOKEN else None
-client = Anthropic(api_key=ANTHROPIC_KEY) if ANTHROPIC_KEY else None
 
 # In-memory sessions: job_id -> dict
 sessions: dict[str, dict] = {}
@@ -340,9 +338,9 @@ Script hiện tại:
 
 
 def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
-    """Use Claude API to generate script.json matching Auto-Create-Video Zod schema."""
-    if not client:
-        print("⚠️ Chưa có ANTHROPIC_API_KEY, không thể sinh script.")
+    """Use Deepseek API to generate script.json matching Auto-Create-Video Zod schema."""
+    if not DEEPSEEK_KEY:
+        print("⚠️ Chưa có DEEPSEEK_API_KEY, không thể sinh script.")
         return None, None
 
     prompt = SCRIPT_PROMPT.replace("{title}", article["title"]) \
@@ -351,12 +349,27 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
                           .replace("{content}", article["content"][:2000])
 
     try:
-        response = client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = response.content[0].text.strip()
+        import requests
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_KEY}",
+            "Content-Type": "application/json",
+        }
+        body = {
+            "model": AI_MODEL,
+            "messages": [
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": "Tạo kịch bản JSON cho bài báo trên theo đúng Schema."}
+            ],
+            "temperature": 0.2,
+            "max_tokens": 4096,
+            "response_format": {"type": "json_object"}
+        }
+        
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=body, timeout=120)
+        response.raise_for_status()
+        data = response.json()
+        
+        text = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
 
         # Extract JSON block robustly
         start_idx = text.find('{')
@@ -389,26 +402,26 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
         # Đảm bảo các field thỏa mãn độ dài của Zod (chống crash Node.js)
         script = enforce_schema_limits(script)
 
-        print(f"✅ Claude đã sinh script.json ({len(scenes)} scenes)")
+        print(f"✅ Deepseek đã sinh script.json ({len(scenes)} scenes)")
         
         # Lấy thông tin usage tokens
         usage = {
-            "input_tokens": response.usage.input_tokens if hasattr(response.usage, 'input_tokens') else 0,
-            "output_tokens": response.usage.output_tokens if hasattr(response.usage, 'output_tokens') else 0
+            "input_tokens": data.get("usage", {}).get("prompt_tokens", 0),
+            "output_tokens": data.get("usage", {}).get("completion_tokens", 0)
         }
         return script, usage
 
     except json.JSONDecodeError as e:
-        print(f"❌ Lỗi parse JSON từ Claude: {e}")
+        print(f"❌ Lỗi parse JSON từ Deepseek: {e}")
         return None, None
     except Exception as e:
-        print(f"❌ Lỗi Claude API: {e}")
+        print(f"❌ Lỗi Deepseek API: {e}")
         return None, None
 
 
 def rewrite_script_json(script: dict, instruction: str = None) -> tuple[dict, dict | None]:
-    """Use Claude API to rewrite voiceText in script.json."""
-    if not client:
+    """Use Deepseek API to rewrite voiceText in script.json."""
+    if not DEEPSEEK_KEY:
         return script, None
 
     if instruction:
@@ -417,11 +430,6 @@ def rewrite_script_json(script: dict, instruction: str = None) -> tuple[dict, di
         prompt = REWRITE_PROMPT.replace("{script_json}", json.dumps(script, ensure_ascii=False, indent=2))
 
     try:
-        response = client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
-        )
         text = response.content[0].text.strip()
         
         start_idx = text.find('{')
