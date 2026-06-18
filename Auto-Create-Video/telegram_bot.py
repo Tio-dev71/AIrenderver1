@@ -28,6 +28,7 @@ import telebot
 import urllib.request
 import urllib.parse
 import requests
+import web_fetcher
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -124,56 +125,32 @@ def extract_latest_links(source_url: str, max_links: int = 5) -> list[str]:
 
 
 def scrape_article(url: str) -> dict:
-    """Scrape article content from URL. Returns dict with title, content, ogImage, domain."""
+    """Scrape article content from URL using web_fetcher. Returns dict with title, content, ogImage, domain."""
     try:
-        resp = requests.get(
-            url,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7 AppleWebKit/537.36)",
-                "Accept": "text/html,application/xhtml+xml",
-            },
-            timeout=15
-        )
-        resp.encoding = 'utf-8'
-        html_text = resp.text
-        soup = BeautifulSoup(html_text, "html.parser")
+        result = web_fetcher.fetch_content(url)
+        if not result["success"]:
+            print(f"❌ Lỗi scrape {url}: {result.get('error', '')}")
+            return {
+                "title": "Lỗi khi đọc bài",
+                "content": "",
+                "ogImage": None,
+                "domain": urllib.parse.urlparse(url).netloc,
+                "description": "",
+                "url": url,
+            }
 
-        # Extract metadata
-        og_title = ""
-        og_image = None
-        og_desc = ""
-
-        for meta in soup.find_all("meta"):
-            prop = meta.get("property", "") or meta.get("name", "")
-            content = meta.get("content", "")
-            if prop.lower() in ("og:title", "twitter:title"):
-                og_title = content.strip()
-            elif prop.lower() in ("og:image", "twitter:image"):
-                og_image = content.strip()
-            elif prop.lower() in ("description", "og:description"):
-                og_desc = content.strip()
-
-        # Title fallback
-        title = og_title or (soup.title.string.strip() if soup.title and soup.title.string else "Không có tiêu đề")
-
-        # Extract text content
-        # Remove script/style/nav/footer/aside to get clean text
-        for tag in soup(["script", "style", "noscript", "svg", "iframe", "nav", "footer", "form", "header", "aside"]):
-            tag.decompose()
-
-        content = soup.get_text(separator=" ", strip=True)
-        # Clean up
-        content = re.sub(r"\s+", " ", content).strip()
+        raw_html = result.get("raw_html", "")
+        meta = web_fetcher.extract_metadata(raw_html, url)
+        
+        content = result.get("content", "")
         content = content[:3000]  # Cap at 3000 chars to save tokens
 
-        domain = urllib.parse.urlparse(url).netloc
-
         return {
-            "title": title,
+            "title": meta.get("title") or "Không có tiêu đề",
             "content": content,
-            "ogImage": og_image,
-            "domain": domain,
-            "description": og_desc,
+            "ogImage": meta.get("og_image") or None,
+            "domain": meta.get("domain") or urllib.parse.urlparse(url).netloc,
+            "description": meta.get("description") or "",
             "url": url,
         }
     except Exception as e:
