@@ -835,8 +835,8 @@ def render_video_task(job_id: str, message_id: int):
             in_tokens = usage.get("input_tokens", 0)
             out_tokens = usage.get("output_tokens", 0)
             
-            # Claude 3.5 Sonnet: $3/1M input, $15/1M output
-            claude_cost = (in_tokens / 1_000_000) * 3.0 + (out_tokens / 1_000_000) * 15.0
+            # Deepseek API cost (ước tính trung bình: $0.14/1M input, $0.28/1M output)
+            ai_cost = (in_tokens / 1_000_000) * 0.14 + (out_tokens / 1_000_000) * 0.28
             
             # TTS Cost (ElevenLabs: ~$0.30 per 1000 chars)
             total_chars = sum(len(scene.get("voiceText", "")) for scene in script.get("scenes", []))
@@ -844,12 +844,15 @@ def render_video_task(job_id: str, message_id: int):
             if TTS_PROVIDER == "elevenlabs":
                 tts_cost = (total_chars / 1000) * 0.30
                 
-            total_cost = claude_cost + tts_cost
+            total_cost = ai_cost + tts_cost
             
             bot.edit_message_text(
                 f"✅ Video render thành công!\n"
                 f"📦 Kích thước: {file_size_mb:.1f} MB\n"
-                f"💰 Phí dự kiến: ${total_cost:.4f}\n"
+                f"💰 Ước tính chi phí:\n"
+                f"   • AI ({AI_MODEL}): ${ai_cost:.4f}\n"
+                f"   • Voice ({TTS_PROVIDER}): ${tts_cost:.4f}\n"
+                f"   = Tổng: ${total_cost:.4f}\n\n"
                 f"📤 Đang upload lên Telegram...",
                 chat_id, message_id
             )
@@ -872,7 +875,7 @@ def render_video_task(job_id: str, message_id: int):
                             f"🔗 Tham gia ngay: https://okx.com/join/HEDRATIKTOK\n"
                             f"📰 Nguồn: {article.get('url', '')}\n\n"
                             f"#TheBeautifulGame #OKX\n"
-                            f"💰 Phí: ${total_cost:.4f} | 📦 {file_size_mb:.1f} MB"
+                            f"💰 Phí: AI ${ai_cost:.4f} + Voice ${tts_cost:.4f} | 📦 {file_size_mb:.1f} MB"
                         ),
                         reply_to_message_id=message_id,
                         timeout=300,
