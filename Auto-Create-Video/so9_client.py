@@ -44,7 +44,9 @@ def generate_thumbnail(video_path) -> str:
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return thumb_path
 
-def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, video_file_path: str) -> dict:
+def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, video_file_path: str, title: str = "") -> dict:
+    if not title:
+        title = content.split('\n')[0][:95]
     # 1. Upload video to get public URL
     video_url = upload_temp_file(video_file_path)
     if not video_url:
@@ -72,7 +74,8 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
             "type": "reel"  # Video ngắn thường nên để Reel
         },
         "youtube_setting": {
-            "type": "shorts",
+            "type": "short",
+            "title": title,
             "privacy_status": "public"
         },
         "tiktok_setting": {
