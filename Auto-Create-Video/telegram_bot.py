@@ -291,14 +291,14 @@ Tags ẩn dụ / thử nghiệm:
 - Giọng điệu: chuyên nghiệp, dễ hiểu, như MC truyền hình tài chính
 - Câu ngắn gọn, súc tích, max 30 từ/câu
 
-## Cấu trúc scenes (5-8 scenes)
+## Cấu trúc scenes (4-6 scenes)
 - Scene 1: type="hook", template="hook" — câu gây tò mò, có số liệu
 - Scene 2-N: type="body" — đa dạng template (stat-hero, comparison, feature-list, callout)
 - Scene cuối: type="outro", template="outro"
 
 ## Quan trọng
 - Trả về ĐÚNG 1 JSON object, không markdown, không giải thích
-- voiceText tổng tối đa ~250-300 từ → khoảng 1.5 - 2 phút (Tuyệt đối KHÔNG vượt quá 2 phút)
+- voiceText tổng tối đa ~120-130 từ → thời lượng dưới 55 giây (CỰC KỲ QUAN TRỌNG: Youtube Shorts sẽ TỪ CHỐI nếu video dài hơn 60 giây!)
 - Mỗi scene voiceText 2-3 câu súc tích, đi thẳng vào vấn đề
 - TUYỆT ĐỐI KHÔNG nhắc đến tên báo, nguồn báo, tác giả, hay trang web trong voiceText. Hãy đóng vai bạn là người đưa tin độc lập.
 
