@@ -504,6 +504,10 @@ def enforce_schema_limits(script: dict) -> dict:
     if "speed" not in script["voice"]:
         script["voice"]["speed"] = 1.0
         
+    if "metadata" in script and isinstance(script["metadata"], dict):
+        if "source" in script["metadata"] and isinstance(script["metadata"]["source"], dict):
+            script["metadata"]["source"]["domain"] = "hedracentral"
+            
     def _trunc(val, limit: int, fallback: str = "N/A") -> str:
         if not val or not isinstance(val, str):
             return fallback
@@ -521,44 +525,44 @@ def enforce_schema_limits(script: dict) -> dict:
         tpl = td.get("template")
         
         if tpl == "hook":
-            td["headline"] = _trunc(td.get("headline"), 25, "Tin tức Crypto")
+            td["headline"] = _trunc(td.get("headline"), 60, "Tin tức Crypto")
             if "subhead" in td:
-                td["subhead"] = _trunc(td.get("subhead"), 30)
+                td["subhead"] = _trunc(td.get("subhead"), 70)
         elif tpl == "comparison":
             left = td.get("left", {})
-            left["label"] = _trunc(left.get("label"), 30, "Lựa chọn 1")
-            left["value"] = _trunc(left.get("value"), 15, "???")
+            left["label"] = _trunc(left.get("label"), 50, "Lựa chọn 1")
+            left["value"] = _trunc(left.get("value"), 30, "???")
             if left.get("color") not in ["cyan", "purple"]:
                 left["color"] = "cyan"
             td["left"] = left
             
             right = td.get("right", {})
-            right["label"] = _trunc(right.get("label"), 30, "Lựa chọn 2")
-            right["value"] = _trunc(right.get("value"), 15, "???")
+            right["label"] = _trunc(right.get("label"), 50, "Lựa chọn 2")
+            right["value"] = _trunc(right.get("value"), 30, "???")
             if right.get("color") not in ["cyan", "purple"]:
                 right["color"] = "purple"
             td["right"] = right
         elif tpl == "stat-hero":
-            td["label"] = _trunc(td.get("label"), 30, "Chỉ số quan trọng")
-            td["value"] = _trunc(td.get("value"), 15, "0%")
+            td["label"] = _trunc(td.get("label"), 50, "Chỉ số quan trọng")
+            td["value"] = _trunc(td.get("value"), 30, "0%")
             if "context" in td:
-                td["context"] = _trunc(td.get("context"), 40)
+                td["context"] = _trunc(td.get("context"), 60)
         elif tpl == "feature-list":
-            td["title"] = _trunc(td.get("title"), 30, "Điểm nổi bật")
+            td["title"] = _trunc(td.get("title"), 40, "Điểm nổi bật")
             bullets = td.get("bullets", [])
             if not isinstance(bullets, list) or not bullets:
                 bullets = ["Không có thông tin"]
-            td["bullets"] = [_trunc(b, 40, "Mục") for b in bullets[:4]]
+            td["bullets"] = [_trunc(b, 60, "Mục") for b in bullets[:4]]
         elif tpl == "callout":
-            td["statement"] = _trunc(td.get("statement"), 50, "Cần lưu ý quan trọng")
+            td["statement"] = _trunc(td.get("statement"), 80, "Cần lưu ý quan trọng")
             if "tag" in td:
-                td["tag"] = _trunc(td.get("tag"), 20)
+                td["tag"] = _trunc(td.get("tag"), 30)
         elif tpl == "outro":
             # Sometimes Claude returns "cta" instead of "ctaTop"
             cta = td.get("ctaTop") or td.get("cta") or "Theo dõi ngay"
             td["ctaTop"] = _trunc(cta, 30, "Theo dõi ngay")
-            td["channelName"] = _trunc(td.get("channelName"), 30, "Hedra Central")
-            td["source"] = _trunc(td.get("source"), 40, "Nguồn tham khảo")
+            td["channelName"] = "hedracentral"
+            td["source"] = "hedracentral"
             if "cta" in td:
                 del td["cta"]
                 

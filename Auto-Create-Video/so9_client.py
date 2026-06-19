@@ -81,6 +81,9 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
         "tiktok_setting": {
             "thumbnail_offset": 0
         },
+        "instagram_setting": {
+            "type": "reel"
+        },
         "media": {
             "type": 2, # 2 = video
             "video": {
