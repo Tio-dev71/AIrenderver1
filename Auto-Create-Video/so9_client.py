@@ -2,6 +2,7 @@ import os
 import time
 import uuid
 import requests
+import subprocess
 
 SO9_API_BASE = "https://open-api.so9.vn/api/v1"
 
@@ -27,7 +28,7 @@ def get_access_token(app_id: str, app_secret: str) -> str:
     _token_expiry = time.time() + expires_in - 60 # buffer 60s
     return _cached_token
 
-def upload_temp_video(file_path: str) -> str:
+def upload_temp_file(file_path: str) -> str:
     url = "https://tmpfiles.org/api/v1/upload"
     with open(file_path, "rb") as f:
         files = {'file': f}
@@ -36,16 +37,28 @@ def upload_temp_video(file_path: str) -> str:
         data = resp.json().get("data", {})
         return data.get("url", "").replace("tmpfiles.org/", "tmpfiles.org/dl/")
 
+def generate_thumbnail(video_path: str) -> str:
+    thumb_path = video_path + ".jpg"
+    cmd = ["ffmpeg", "-i", video_path, "-vframes", "1", "-y", thumb_path]
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return thumb_path
+
 def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, video_file_path: str) -> dict:
     # 1. Upload video to get public URL
-    video_url = upload_temp_video(video_file_path)
+    video_url = upload_temp_file(video_file_path)
     if not video_url:
         raise Exception("Failed to upload temporary video.")
     
-    # 2. Get token
+    # 2. Upload thumbnail
+    thumb_path = generate_thumbnail(video_file_path)
+    thumb_url = upload_temp_file(thumb_path)
+    if not thumb_url:
+        raise Exception("Failed to upload temporary thumbnail.")
+    
+    # 3. Get token
     token = get_access_token(app_id, app_secret)
     
-    # 3. Create post
+    # 4. Create post
     url = f"{SO9_API_BASE}/posts/store"
     headers = {
         "Authorization": f"Bearer {token}"
@@ -58,12 +71,13 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
             "type": "reel"  # Video ngắn thường nên để Reel
         },
         "tiktok_setting": {
-            # Tiktok mặc định upload video ok
+            "thumbnail_offset": 0
         },
         "media": {
             "type": 2, # 2 = video
             "video": {
-                "url": video_url
+                "url": video_url,
+                "thumbnail_url": thumb_url
             }
         }
     }
