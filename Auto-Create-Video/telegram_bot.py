@@ -291,15 +291,15 @@ Tags ẩn dụ / thử nghiệm:
 - Giọng điệu: chuyên nghiệp, dễ hiểu, như MC truyền hình tài chính
 - Câu ngắn gọn, súc tích, max 30 từ/câu
 
-## Cấu trúc scenes (8-12 scenes)
+## Cấu trúc scenes (5-8 scenes)
 - Scene 1: type="hook", template="hook" — câu gây tò mò, có số liệu
 - Scene 2-N: type="body" — đa dạng template (stat-hero, comparison, feature-list, callout)
 - Scene cuối: type="outro", template="outro"
 
 ## Quan trọng
 - Trả về ĐÚNG 1 JSON object, không markdown, không giải thích
-- voiceText tổng ~350-450 từ → ~2 - 2.5 phút
-- Mỗi scene voiceText 3-5 câu chi tiết, phân tích sâu nội dung
+- voiceText tổng tối đa ~250-300 từ → khoảng 1.5 - 2 phút (Tuyệt đối KHÔNG vượt quá 2 phút)
+- Mỗi scene voiceText 2-3 câu súc tích, đi thẳng vào vấn đề
 
 ## Bài báo gốc
 Tiêu đề: {title}
@@ -396,8 +396,8 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
             return None
 
         scenes = script.get("scenes", [])
-        if len(scenes) < 5 or len(scenes) > 12:
-            print(f"⚠️ AI sinh {len(scenes)} scenes (cần 5-12). Giữ nguyên.")
+        if len(scenes) < 4 or len(scenes) > 8:
+            print(f"⚠️ AI sinh {len(scenes)} scenes (cần 4-8). Giữ nguyên.")
 
         if scenes[0].get("type") != "hook":
             print("⚠️ Scene đầu không phải hook, sửa lại.")
