@@ -914,58 +914,65 @@ def scan_news_job(manual_chat_id=None):
     scanned = load_scanned_urls()
     new_count = 0
 
-    for source in sources:
-        links = extract_latest_links(source, max_links=3)
-        for url in links:
-            if url in scanned:
-                continue
+    try:
+        for source in sources:
+            links = extract_latest_links(source, max_links=3)
+            for url in links:
+                if url in scanned:
+                    continue
 
-            print(f"📰 Tin mới: {url}")
+                print(f"📰 Tin mới: {url}")
+                try:
+                    article = scrape_article(url)
+                    if not article["content"]:
+                        print(f"  ⚠️ Không đọc được nội dung, bỏ qua.")
+                        save_scanned_url(url)
+                        continue
+
+                    script, usage = generate_script_json(article)
+                    if not script:
+                        print(f"  ⚠️ AI không thể tạo kịch bản, bỏ qua.")
+                        save_scanned_url(url)
+                        continue
+
+                    job_id = str(uuid.uuid4())[:8]
+
+                    # Send to Telegram
+                    msg = bot.send_message(target_chat, f"🚨 *TIN MỚI PHÁT HIỆN*\n\n⏳ Đang tạo kịch bản...", parse_mode="Markdown")
+
+                    sessions[job_id] = {
+                        "chat_id": target_chat,
+                        "message_id": msg.message_id,
+                        "article": article,
+                        "script": script,
+                        "url": url,
+                    }
+
+                    send_script_approval(job_id, header="🚨 *TIN MỚI PHÁT HIỆN:*")
+                    save_scanned_url(url)
+                    new_count += 1
+
+                    # Small delay between processing articles
+                    time.sleep(2)
+
+                except Exception as e:
+                    print(f"❌ Lỗi xử lý {url}: {e}")
+                    save_scanned_url(url)  # Mark as scanned to avoid retry loops
+
+        if manual_chat_id and new_count == 0:
             try:
-                article = scrape_article(url)
-                if not article["content"]:
-                    print(f"  ⚠️ Không đọc được nội dung, bỏ qua.")
-                    save_scanned_url(url)
-                    continue
-
-                script, usage = generate_script_json(article)
-                if not script:
-                    print(f"  ⚠️ AI không thể tạo kịch bản, bỏ qua.")
-                    save_scanned_url(url)
-                    continue
-
-                job_id = str(uuid.uuid4())[:8]
-
-                # Send to Telegram
-                msg = bot.send_message(target_chat, f"🚨 *TIN MỚI PHÁT HIỆN*\n\n⏳ Đang tạo kịch bản...", parse_mode="Markdown")
-
-                sessions[job_id] = {
-                    "chat_id": target_chat,
-                    "message_id": msg.message_id,
-                    "article": article,
-                    "script": script,
-                    "url": url,
-                }
-
-                send_script_approval(job_id, header="🚨 *TIN MỚI PHÁT HIỆN:*")
-                save_scanned_url(url)
-                new_count += 1
-
-                # Small delay between processing articles
-                time.sleep(2)
-
+                bot.send_message(
+                    manual_chat_id,
+                    "✅ Đã quét xong 5 trang báo. Hiện tại *chưa có bài viết nào mới* (tất cả đều đã quét rồi).",
+                    parse_mode="Markdown"
+                )
             except Exception as e:
-                print(f"❌ Lỗi xử lý {url}: {e}")
-                save_scanned_url(url)  # Mark as scanned to avoid retry loops
-
-    if manual_chat_id and new_count == 0:
-        bot.send_message(
-            manual_chat_id,
-            "✅ Đã quét xong 5 trang báo. Hiện tại *chưa có bài viết nào mới* (tất cả đều đã quét rồi).",
-            parse_mode="Markdown"
-        )
-    elif new_count > 0:
-        print(f"✅ Quét xong: {new_count} bài mới.")
+                print(f"⚠️ Không thể gửi thông báo kết thúc quét: {e}")
+        elif new_count > 0:
+            print(f"✅ Quét xong: {new_count} bài mới.")
+            
+    except Exception as e:
+        print(f"❌ Lỗi nghiêm trọng trong scan_news_job: {e}")
 
 
 def run_scheduler():
