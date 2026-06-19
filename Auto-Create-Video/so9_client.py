@@ -71,6 +71,10 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
         "facebook_setting": {
             "type": "reel"  # Video ngắn thường nên để Reel
         },
+        "youtube_setting": {
+            "type": "shorts",
+            "privacy_status": "public"
+        },
         "tiktok_setting": {
             "thumbnail_offset": 0
         },
