@@ -37,9 +37,10 @@ def upload_temp_file(file_path: str) -> str:
         data = resp.json().get("data", {})
         return data.get("url", "").replace("tmpfiles.org/", "tmpfiles.org/dl/")
 
-def generate_thumbnail(video_path: str) -> str:
-    thumb_path = video_path + ".jpg"
-    cmd = ["ffmpeg", "-i", video_path, "-vframes", "1", "-y", thumb_path]
+def generate_thumbnail(video_path) -> str:
+    video_path_str = str(video_path)
+    thumb_path = video_path_str + ".jpg"
+    cmd = ["ffmpeg", "-i", video_path_str, "-vframes", "1", "-y", thumb_path]
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return thumb_path
 
