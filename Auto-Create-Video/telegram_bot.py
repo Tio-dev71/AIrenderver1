@@ -528,10 +528,15 @@ def enforce_schema_limits(script: dict) -> dict:
             left = td.get("left", {})
             left["label"] = _trunc(left.get("label"), 30, "Lựa chọn 1")
             left["value"] = _trunc(left.get("value"), 15, "???")
+            if left.get("color") not in ["cyan", "purple"]:
+                left["color"] = "cyan"
             td["left"] = left
+            
             right = td.get("right", {})
             right["label"] = _trunc(right.get("label"), 30, "Lựa chọn 2")
             right["value"] = _trunc(right.get("value"), 15, "???")
+            if right.get("color") not in ["cyan", "purple"]:
+                right["color"] = "purple"
             td["right"] = right
         elif tpl == "stat-hero":
             td["label"] = _trunc(td.get("label"), 30, "Chỉ số quan trọng")
@@ -611,7 +616,7 @@ def send_welcome(message):
 
 @bot.message_handler(commands=["scan"])
 def manual_scan(message):
-    bot.reply_to(message, "🔄 Đang quét 5 trang báo...")
+    bot.reply_to(message, "🔄 Đang quét các trang báo...")
     threading.Thread(target=scan_news_job, args=(message.chat.id,), daemon=True).start()
 
 
