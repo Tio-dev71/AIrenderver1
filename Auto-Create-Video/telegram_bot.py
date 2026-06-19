@@ -29,6 +29,7 @@ import urllib.request
 import urllib.parse
 import requests
 import web_fetcher
+import so9_client
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -47,6 +48,11 @@ VIETNAMESE_VOICEID = os.environ.get("VIETNAMESE_VOICEID", "")
 AI_MODEL = os.environ.get("AI_MODEL", "deepseek-chat")
 NEWS_SOURCES = os.environ.get("NEWS_SOURCES", "")
 SCAN_INTERVAL_MINUTES = int(os.environ.get("SCAN_INTERVAL_MINUTES", "60"))
+
+# SO9 integration
+SO9_APP_ID = os.environ.get("SO9_APP_ID", "")
+SO9_APP_SECRET = os.environ.get("SO9_APP_SECRET", "")
+SO9_CHANNEL_IDS = os.environ.get("SO9_CHANNEL_IDS", "")
 
 # TTS config (read from same .env used by the Node.js pipeline)
 TTS_PROVIDER = os.environ.get("TTS_PROVIDER", "elevenlabs")
@@ -880,6 +886,39 @@ def render_video_task(job_id: str, message_id: int):
                         reply_to_message_id=message_id,
                         timeout=300,
                     )
+                
+                # --- SO9 Auto Publish ---
+                if SO9_APP_ID and SO9_APP_SECRET and SO9_CHANNEL_IDS:
+                    bot.send_message(
+                        chat_id,
+                        f"🔄 Đang đẩy bài lên SO9 (uploading video...)",
+                        reply_to_message_id=message_id
+                    )
+                    try:
+                        channel_ids = [c.strip() for c in SO9_CHANNEL_IDS.split(",") if c.strip()]
+                        post_content = f"{article.get('title', 'Video')}\n\n#AutoVideo #Crypto"
+                        
+                        so9_res = so9_client.publish_post(
+                            app_id=SO9_APP_ID,
+                            app_secret=SO9_APP_SECRET,
+                            channel_ids=channel_ids,
+                            content=post_content,
+                            video_file_path=video_file
+                        )
+                        bot.send_message(
+                            chat_id,
+                            f"✅ **Đã đăng bài lên SO9 thành công!**",
+                            parse_mode="Markdown",
+                            reply_to_message_id=message_id
+                        )
+                    except Exception as so9_err:
+                        bot.send_message(
+                            chat_id,
+                            f"❌ **Lỗi đăng bài SO9:** {so9_err}",
+                            parse_mode="Markdown",
+                            reply_to_message_id=message_id
+                        )
+
         else:
             bot.edit_message_text(
                 f"❌ Không tìm thấy video.mp4 sau khi render.\n"
