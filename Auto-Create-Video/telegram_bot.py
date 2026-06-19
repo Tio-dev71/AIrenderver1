@@ -365,10 +365,15 @@ def generate_script_json(article: dict) -> tuple[dict | None, dict | None]:
             ],
             "temperature": 0.3,
             "max_tokens": 8192,
-            "response_format": {"type": "json_object"}
         }
         
-        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=body, timeout=120)
+        if AI_MODEL == "deepseek-chat":
+            body["response_format"] = {"type": "json_object"}
+        elif AI_MODEL == "deepseek-reasoner":
+            # Hỗ trợ "pro think max" (16384 budget tokens)
+            body["thinking"] = {"type": "enabled", "budget_tokens": 16384}
+        
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=body, timeout=180)
         response.raise_for_status()
         data = response.json()
         
@@ -444,10 +449,14 @@ def rewrite_script_json(script: dict, instruction: str = None) -> tuple[dict, di
             ],
             "temperature": 0.3,
             "max_tokens": 8192,
-            "response_format": {"type": "json_object"}
         }
         
-        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=body, timeout=120)
+        if AI_MODEL == "deepseek-chat":
+            body["response_format"] = {"type": "json_object"}
+        elif AI_MODEL == "deepseek-reasoner":
+            body["thinking"] = {"type": "enabled", "budget_tokens": 16384}
+        
+        response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=body, timeout=180)
         response.raise_for_status()
         data = response.json()
         
