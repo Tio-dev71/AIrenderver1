@@ -1084,9 +1084,10 @@ if __name__ == "__main__":
             print(f"⚠️ Không thể gửi tin vào Group {TELEGRAM_GROUP_ID}: {e}")
 
     print("\n🟢 Bot đang chạy... Nhấn Ctrl+C để dừng.\n")
-    while True:
-        try:
-            bot.infinity_polling(timeout=20, logger_level=logging.ERROR)
-        except Exception as e:
-            print(f"⚠️ Lỗi kết nối Telegram (sẽ thử lại sau 5s): {e}")
-            time.sleep(5)
+    try:
+        # infinity_polling đã tự động xử lý lỗi mạng và tự kết nối lại
+        bot.infinity_polling(timeout=20, logger_level=logging.CRITICAL)
+    except KeyboardInterrupt:
+        print("\n🛑 Bot đã dừng theo yêu cầu (Ctrl+C). Tạm biệt!")
+    except Exception as e:
+        print(f"\n❌ Lỗi nghiêm trọng: {e}")
