@@ -300,6 +300,7 @@ Tags ẩn dụ / thử nghiệm:
 - Trả về ĐÚNG 1 JSON object, không markdown, không giải thích
 - voiceText tổng tối đa ~250-300 từ → khoảng 1.5 - 2 phút (Tuyệt đối KHÔNG vượt quá 2 phút)
 - Mỗi scene voiceText 2-3 câu súc tích, đi thẳng vào vấn đề
+- TUYỆT ĐỐI KHÔNG nhắc đến tên báo, nguồn báo, tác giả, hay trang web trong voiceText. Hãy đóng vai bạn là người đưa tin độc lập.
 
 ## Bài báo gốc
 Tiêu đề: {title}
@@ -516,6 +517,8 @@ def enforce_schema_limits(script: dict) -> dict:
     for i, scene in enumerate(script.get("scenes", [])):
         if "id" not in scene:
             scene["id"] = f"scene-{i+1}"
+        else:
+            scene["id"] = str(scene["id"])
         if "type" not in scene:
             scene["type"] = "hook" if i == 0 else "body"
         if "voiceText" not in scene:
