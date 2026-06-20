@@ -4,8 +4,8 @@ import { z } from "zod";
 
 const HookData = z.object({
   template: z.literal("hook"),
-  headline: z.string().min(1).max(40),
-  subhead: z.string().max(40).optional(),
+  headline: z.string().min(1).max(60),
+  subhead: z.string().max(70).optional(),
   /** background image path (literal "$source.image" → substituted at pipeline level) */
   bgSrc: z.string().optional(),
   /** Ken Burns effect class */
@@ -13,8 +13,8 @@ const HookData = z.object({
 });
 
 const ComparisonSide = z.object({
-  label: z.string().min(1).max(30),
-  value: z.string().min(1).max(20),
+  label: z.string().min(1).max(50),
+  value: z.string().min(1).max(30),
   color: z.enum(["cyan", "purple"]),
 });
 
@@ -26,22 +26,22 @@ const ComparisonData = z.object({
 
 const StatHeroData = z.object({
   template: z.literal("stat-hero"),
-  value: z.string().min(1).max(20),
-  label: z.string().min(1).max(40),
-  context: z.string().max(50).optional(),
+  value: z.string().min(1).max(30),
+  label: z.string().min(1).max(50),
+  context: z.string().max(60).optional(),
 });
 
 const FeatureListData = z.object({
   template: z.literal("feature-list"),
   title: z.string().min(1).max(40),
-  bullets: z.array(z.string().min(1).max(50)).min(1).max(4),
+  bullets: z.array(z.string().min(1).max(60)).min(1).max(4),
   icon: z.string().optional(),
 });
 
 const CalloutData = z.object({
   template: z.literal("callout"),
   statement: z.string().min(1).max(80),
-  tag: z.string().max(20).optional(),
+  tag: z.string().max(30).optional(),
 });
 
 const OutroData = z.object({
