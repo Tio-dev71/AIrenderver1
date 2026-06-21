@@ -56,16 +56,49 @@ def generate_thumbnail(video_path) -> str:
         raise Exception("Failed to capture thumbnail frame at 0.05s.")
     return thumb_path
 
+
+def prepare_social_video(video_path, thumbnail_path: str) -> str:
+    """Create a SO9 upload copy whose first visible frame is the chosen thumbnail."""
+    video_path_str = str(video_path)
+    social_path = video_path_str.replace(".mp4", ".so9.mp4")
+    if os.path.exists(social_path):
+        os.remove(social_path)
+
+    cmd = [
+        "ffmpeg",
+        "-i", video_path_str,
+        "-loop", "1",
+        "-i", thumbnail_path,
+        "-filter_complex", "[0:v][1:v]overlay=enable='lt(t,0.05)',format=yuv420p[v]",
+        "-map", "[v]",
+        "-map", "0:a?",
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-crf", "18",
+        "-c:a", "copy",
+        "-movflags", "+faststart",
+        "-shortest",
+        "-y", social_path,
+    ]
+    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if result.returncode != 0 or not os.path.exists(social_path):
+        raise Exception("Failed to prepare SO9 social video with thumbnail first frame.")
+    return social_path
+
 def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, video_file_path: str, title: str = "") -> dict:
     if not title:
         title = content.split('\n')[0][:95]
-    # 1. Upload video to get public URL
-    video_url = upload_temp_file(video_file_path)
+    # 1. Capture thumbnail and create a SO9-specific video copy.
+    # YouTube can use thumbnail_url, but TikTok/Facebook/Instagram often use the
+    # first video frame, so the SO9 upload copy starts with the chosen thumbnail.
+    thumb_path = generate_thumbnail(video_file_path)
+    social_video_path = prepare_social_video(video_file_path, thumb_path)
+
+    # 2. Upload video + thumbnail to get public URLs
+    video_url = upload_temp_file(social_video_path)
     if not video_url:
         raise Exception("Failed to upload temporary video.")
     
-    # 2. Upload thumbnail
-    thumb_path = generate_thumbnail(video_file_path)
     thumb_url = upload_temp_file(thumb_path)
     if not thumb_url:
         raise Exception("Failed to upload temporary thumbnail.")
