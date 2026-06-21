@@ -58,31 +58,71 @@ def generate_thumbnail(video_path) -> str:
 
 
 def prepare_social_video(video_path, thumbnail_path: str) -> str:
-    """Create a SO9 upload copy whose first visible frame is the chosen thumbnail."""
+    """Prepend a 0.5s still frame of the thumbnail to the video for SO9 upload.
+
+    Facebook/Instagram Reels don't support custom thumbnails via API —
+    they auto-pick a cover frame from the video.  By placing a bright,
+    text-visible thumbnail image at the very start (0.5s), the auto-picked
+    cover will look correct on every platform.
+    """
     video_path_str = str(video_path)
     social_path = video_path_str.replace(".mp4", ".so9.mp4")
     if os.path.exists(social_path):
         os.remove(social_path)
 
+    # Probe the original video to get fps and audio sample-rate so the
+    # concat filter produces a seamless result.
+    probe = subprocess.run(
+        ["ffprobe", "-v", "error",
+         "-select_streams", "v:0",
+         "-show_entries", "stream=r_frame_rate",
+         "-of", "csv=p=0", video_path_str],
+        capture_output=True, text=True
+    )
+    fps = "30"  # default fallback
+    if probe.returncode == 0 and "/" in probe.stdout.strip():
+        parts = probe.stdout.strip().split("/")
+        try:
+            fps = str(round(int(parts[0]) / int(parts[1])))
+        except Exception:
+            pass
+
+    # Build an FFmpeg command that:
+    #   input 0 = thumbnail image → 0.5s video clip at matching fps/size
+    #   input 1 = original video
+    # Then concat them together with the original audio stream.
     cmd = [
         "ffmpeg",
-        "-i", video_path_str,
+        # Input 0: thumbnail still → 0.5s video
         "-loop", "1",
+        "-framerate", fps,
+        "-t", "0.5",
         "-i", thumbnail_path,
-        "-filter_complex", "[0:v][1:v]overlay=enable='lt(t,0.05)',format=yuv420p[v]",
-        "-map", "[v]",
-        "-map", "0:a?",
+        # Input 1: original video
+        "-i", video_path_str,
+        # Concat filter: scale thumbnail to match, then join video streams.
+        # Generate 0.5s silence for the thumbnail clip so audio stays in sync.
+        "-filter_complex",
+        f"[0:v]scale=1080:1920:force_original_aspect_ratio=disable,setsar=1,fps={fps},format=yuv420p[thumb];"
+        f"[1:v]fps={fps},format=yuv420p[main];"
+        f"[thumb][main]concat=n=2:v=1:a=0[vout];"
+        f"anullsrc=r=44100:cl=stereo[silence];"
+        f"[silence]atrim=0:0.5[sil];"
+        f"[sil][1:a]concat=n=2:v=0:a=1[aout]",
+        "-map", "[vout]",
+        "-map", "[aout]",
         "-c:v", "libx264",
         "-preset", "veryfast",
         "-crf", "18",
-        "-c:a", "copy",
+        "-c:a", "aac",
+        "-b:a", "192k",
         "-movflags", "+faststart",
-        "-shortest",
         "-y", social_path,
     ]
-    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0 or not os.path.exists(social_path):
-        raise Exception("Failed to prepare SO9 social video with thumbnail first frame.")
+        print(f"⚠️ prepare_social_video FFmpeg error: {result.stderr[-500:]}")
+        raise Exception("Failed to prepend thumbnail frame to SO9 video.")
     return social_path
 
 def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, video_file_path: str, title: str = "") -> dict:
@@ -128,7 +168,7 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
             "status": "public"
         },
         "tiktok_setting": {
-            "thumbnail_offset": 50  # SO9 expects milliseconds: 50ms = 0.05s
+            "thumbnail_offset": 300  # 300ms = inside the 0.5s prepended thumbnail still
         },
         "instagram_setting": {
             "type": "reel"  # SO9 docs: feed, reel, story
