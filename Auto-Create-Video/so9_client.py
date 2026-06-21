@@ -38,9 +38,10 @@ def upload_temp_file(file_path: str) -> str:
         return data.get("url", "").replace("tmpfiles.org/", "tmpfiles.org/dl/")
 
 def generate_thumbnail(video_path) -> str:
+    """Extract a thumbnail frame at 0.28s for a nicer social media grid preview."""
     video_path_str = str(video_path)
     thumb_path = video_path_str + ".jpg"
-    cmd = ["ffmpeg", "-i", video_path_str, "-vframes", "1", "-y", thumb_path]
+    cmd = ["ffmpeg", "-ss", "0.28", "-i", video_path_str, "-vframes", "1", "-y", thumb_path]
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return thumb_path
 
@@ -81,7 +82,7 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
             "status": "public"
         },
         "tiktok_setting": {
-            "thumbnail_offset": 0
+            "thumbnail_offset": 0.28
         },
         "instagram_setting": {
             "type": "reel"
