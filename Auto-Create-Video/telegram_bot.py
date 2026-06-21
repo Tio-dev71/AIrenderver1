@@ -264,7 +264,7 @@ voiceText sẽ được AI đọc thành tiếng. SỐ VÀ KÝ HIỆU BỊ ĐỌ
 - Tên thương hiệu Anh giữ nguyên: Bitcoin, Ethereum, Apple OK
 - KHÔNG emoji, KHÔNG markdown, KHÔNG URL trong voiceText
 - Kết thúc mỗi câu bằng dấu chấm (.) hoặc dấu hỏi (?)
-- BẮT BUỘC: Luôn mở đầu mỗi câu (đặc biệt là câu đầu tiên của scene 1) bằng các từ thuần Việt (ví dụ: 'Tin nóng', 'Thị trường', 'Mới đây', 'Hôm nay') để ElevenLabs không bị lai giọng ngoại quốc.
+- BẮT BUỘC: Luôn mở đầu mỗi câu (đặc biệt là câu đầu tiên của scene 1) bằng các từ thuần Việt (ví dụ: 'Thị trường', 'Mới đây', 'Hôm nay', 'Vừa qua', 'Đáng chú ý') để ElevenLabs không bị lai giọng ngoại quốc.
 - templateData (text hiển thị trên màn hình) GIỮ NGUYÊN dạng số/ký hiệu gốc
 
 ## Cảm xúc và nhấn nhá (chỉ dành cho voiceText khi dùng ElevenLabs V3)

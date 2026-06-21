@@ -41,10 +41,11 @@ export function composeHtml(args: ComposeArgs): string {
   const tiktok = args.tiktok ?? DEFAULT_TIKTOK;
   const tiktokAvatar = args.tiktokAvatarRelPath ?? "tiktok-avatar.jpg";
   const outroHoldSec = args.outroHoldSec ?? 3;
+  const thumbnailIntroSec = 0.28;
 
   // Compute timing per scene. Outro scene gets extra HOLD seconds so the
   // TikTok follow card stays visible after the voice ends.
-  let cursor = 0;
+  let cursor = thumbnailIntroSec;
   const timing = script.scenes.map((scene) => {
     const audio = sceneAudio.find((a) => a.id === scene.id);
     if (!audio) throw new Error(`No audio entry for scene id=${scene.id}`);
@@ -56,10 +57,15 @@ export function composeHtml(args: ComposeArgs): string {
   });
   const totalDuration = cursor;
 
-  // Render scenes
-  const sceneHtml = timing.map(({ scene, start, duration }) => {
-    return renderScene(scene, start, duration, bgImageRelPath, tiktok, tiktokAvatar);
-  }).join("\n");
+  // Render scenes. A 0.28s thumbnail-only intro is placed above the persistent
+  // shell so social platforms use the thumbnail image as the grid preview frame.
+  const thumbnailHtml = renderThumbnailIntro(bgImageRelPath, thumbnailIntroSec);
+  const sceneHtml = [
+    thumbnailHtml,
+    ...timing.map(({ scene, start, duration }) => {
+      return renderScene(scene, start, duration, bgImageRelPath, tiktok, tiktokAvatar);
+    }),
+  ].join("\n");
 
   // Persistent shell — uses tiktok handle in footer
   const shellHtml = renderShell(script.metadata, tiktok);
@@ -72,6 +78,7 @@ export function composeHtml(args: ComposeArgs): string {
     .replace(/\{\{TOTAL_DURATION\}\}/g, totalDuration.toFixed(2))
     .replace("{{SHELL}}", shellHtml)
     .replace("{{SCENES}}", sceneHtml)
+    .replace(/\{\{AUDIO_START\}\}/g, thumbnailIntroSec.toFixed(2))
     .replace(/src="voice\.mp3"/g, `src="${audioRelPath}"`)
     .replace('<script src="animations.js"></script>', `<script>\n${animJs}\n</script>`);
 }
@@ -151,6 +158,20 @@ function renderScene(
   }
 
   return buildScene(scene, start, duration, layoutName, inner);
+}
+
+// ── THUMBNAIL INTRO ────────────────────────────────────────────────────────
+function renderThumbnailIntro(bgImageRelPath: string | null, durationSec: number): string {
+  const bgHtml = bgImageRelPath
+    ? `<div class="bg thumbnail-bg" style="background-image: url('${bgImageRelPath}')"></div>`
+    : `<div class="bg gradient-news-dark"></div>`;
+
+  return `
+<div class="scene clip thumbnail-intro" id="thumbnail-intro"
+     data-start="0" data-duration="${durationSec.toFixed(2)}" data-active="0"
+     data-layout="thumbnail" style="z-index: 200;">
+  ${bgHtml}
+</div>`.trim();
 }
 
 // ── HOOK SCENE ─────────────────────────────────────────────────────────────
