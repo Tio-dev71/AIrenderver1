@@ -126,7 +126,7 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
             "status": "public"
         },
         "tiktok_setting": {
-            "thumbnail_offset": 0
+            "thumbnail_offset": 50  # SO9 expects milliseconds: 50ms = 0.05s
         },
         "instagram_setting": {
             "type": "reel"
