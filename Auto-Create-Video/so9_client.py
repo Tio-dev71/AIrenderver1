@@ -38,11 +38,22 @@ def upload_temp_file(file_path: str) -> str:
         return data.get("url", "").replace("tmpfiles.org/", "tmpfiles.org/dl/")
 
 def generate_thumbnail(video_path) -> str:
-    """Extract a thumbnail frame at 0.05s for a cleaner social media grid preview."""
+    """Capture the actual rendered video frame at ~0.05s, like CapCut thumbnail capture."""
     video_path_str = str(video_path)
     thumb_path = video_path_str + ".jpg"
-    cmd = ["ffmpeg", "-ss", "0.05", "-i", video_path_str, "-vframes", "1", "-y", thumb_path]
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if os.path.exists(thumb_path):
+        os.remove(thumb_path)
+    cmd = [
+        "ffmpeg",
+        "-i", video_path_str,
+        "-vf", "select='gte(t,0.05)',scale=1080:1920",
+        "-frames:v", "1",
+        "-q:v", "2",
+        "-y", thumb_path,
+    ]
+    result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if result.returncode != 0 or not os.path.exists(thumb_path):
+        raise Exception("Failed to capture thumbnail frame at 0.05s.")
     return thumb_path
 
 def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, video_file_path: str, title: str = "") -> dict:
