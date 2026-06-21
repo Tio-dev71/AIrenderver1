@@ -63,6 +63,17 @@ OUTPUT_DIR = ROOT / "output"
 
 bot = telebot.TeleBot(BOT_TOKEN) if BOT_TOKEN else None
 
+
+def safe_edit_message_text(text: str, chat_id, message_id, **kwargs):
+    """Edit a Telegram message, ignoring harmless duplicate-content errors."""
+    try:
+        return bot.edit_message_text(text, chat_id, message_id, **kwargs)
+    except telebot.apihelper.ApiTelegramException as exc:
+        if "message is not modified" in str(exc).lower():
+            return None
+        raise
+
+
 # In-memory sessions: job_id -> dict
 sessions: dict[str, dict] = {}
 
@@ -740,7 +751,7 @@ def send_script_approval(job_id: str, header: str = "📝 *Kịch Bản Đề Xu
     markup.add(InlineKeyboardButton("❌ Feed backup update", callback_data=f"cancel_{job_id}"))
 
     try:
-        bot.edit_message_text(text, chat_id, msg_id, reply_markup=markup, parse_mode="MarkdownV2")
+        safe_edit_message_text(text, chat_id, msg_id, reply_markup=markup, parse_mode="MarkdownV2")
     except Exception:
         # Fallback without MarkdownV2 if escaping fails
         plain_text = f"📝 Kịch Bản Đề Xuất:\n\n"
@@ -748,7 +759,7 @@ def send_script_approval(job_id: str, header: str = "📝 *Kịch Bản Đề Xu
             plain_text += f"Scene {i+1} [{scene.get('templateData', {}).get('template', '?')}]:\n"
             plain_text += f"  {scene.get('voiceText', '')[:120]}\n\n"
 
-        bot.edit_message_text(plain_text, chat_id, msg_id, reply_markup=markup)
+        safe_edit_message_text(plain_text, chat_id, msg_id, reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -763,12 +774,12 @@ def handle_callback(call):
         return
 
     if action == "cancel":
-        bot.edit_message_text("❌ Đã feed backup update.", chat_id, call.message.message_id)
+        safe_edit_message_text("❌ Đã feed backup update.", chat_id, call.message.message_id)
         del sessions[job_id]
 
     elif action == "rewrite":
         bot.answer_callback_query(call.id, "🔄 AI đang viết lại...")
-        bot.edit_message_text("⏳ Claude AI đang viết lại kịch bản cho mượt hơn...", chat_id, call.message.message_id)
+        safe_edit_message_text("⏳ Claude AI đang viết lại kịch bản cho mượt hơn...", chat_id, call.message.message_id)
 
         def do_rewrite():
             session = sessions[job_id]
@@ -790,7 +801,7 @@ def handle_callback(call):
 
     elif action == "render":
         bot.answer_callback_query(call.id, "⚙️ Bắt đầu render...")
-        bot.edit_message_text(
+        safe_edit_message_text(
             "⏳ Đang render video...\n\n"
             "⚙️ Step 1: Validate script\n"
             "⚙️ Step 2-4: TTS voice generation\n"
@@ -828,7 +839,7 @@ def render_video_task(job_id: str, message_id: int):
         print(f"📝 script.json written to {script_file}")
 
         # 3. Run the Node.js pipeline
-        bot.edit_message_text(
+        safe_edit_message_text(
             "⏳ Pipeline đang chạy...\n\n"
             "▶️ npm run pipeline -- " + str(script_file.relative_to(ROOT)),
             chat_id, message_id
@@ -844,7 +855,7 @@ def render_video_task(job_id: str, message_id: int):
 
         if result.returncode != 0:
             error_msg = result.stderr[-500:] if result.stderr else result.stdout[-500:]
-            bot.edit_message_text(
+            safe_edit_message_text(
                 f"❌ Pipeline lỗi (exit code {result.returncode}):\n\n"
                 f"```\n{error_msg}\n```\n\n"
                 f"📂 Output dir: {output_path}",
@@ -873,7 +884,7 @@ def render_video_task(job_id: str, message_id: int):
                 
             total_cost = ai_cost + tts_cost
             
-            bot.edit_message_text(
+            safe_edit_message_text(
                 f"✅ Video render thành công!\n"
                 f"📦 Kích thước: {file_size_mb:.1f} MB\n"
                 f"💰 Ước tính chi phí:\n"
@@ -941,16 +952,16 @@ def render_video_task(job_id: str, message_id: int):
                         )
 
         else:
-            bot.edit_message_text(
+            safe_edit_message_text(
                 f"❌ Không tìm thấy video.mp4 sau khi render.\n"
                 f"📂 Kiểm tra: {output_path}",
                 chat_id, message_id
             )
 
     except subprocess.TimeoutExpired:
-        bot.edit_message_text("❌ Pipeline timeout (>10 phút). Thử lại sau.", chat_id, message_id)
+        safe_edit_message_text("❌ Pipeline timeout (>10 phút). Thử lại sau.", chat_id, message_id)
     except Exception as e:
-        bot.edit_message_text(f"❌ Lỗi render: {e}", chat_id, message_id)
+        safe_edit_message_text(f"❌ Lỗi render: {e}", chat_id, message_id)
     finally:
         if job_id in sessions:
             del sessions[job_id]
