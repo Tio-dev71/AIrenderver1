@@ -115,12 +115,14 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
         "channel_ids": channel_ids,
         "content": content,
         "id_thirdparty": str(uuid.uuid4()),
+        "share_post_to_story": False,
         "facebook_setting": {
-            "type": "reel"  # Video ngắn thường nên để Reel
+            "type": "reel"  # SO9 docs: feed, reel, story
         },
         "youtube_setting": {
-            "type": "short",
+            "type": "short",  # SO9 docs: video, short
             "title": title,
+            "category": "28",  # Science & Technology
             "privacy_status": "public",
             "privacyStatus": "public",
             "status": "public"
@@ -129,7 +131,16 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
             "thumbnail_offset": 50  # SO9 expects milliseconds: 50ms = 0.05s
         },
         "instagram_setting": {
-            "type": "reel"
+            "type": "reel"  # SO9 docs: feed, reel, story
+        },
+        "zalo_setting": {
+            "title": title,
+            "description": content,
+            "comment_state": "show",
+            "article_state": "show"
+        },
+        "pinterest_setting": {
+            "title": title
         },
         "media": {
             "type": 2, # 2 = video
