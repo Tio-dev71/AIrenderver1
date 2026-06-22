@@ -149,7 +149,7 @@ def generate_thumbnail(video_path, title: str = "") -> str:
 def prepare_social_video(video_path, thumbnail_path: str) -> str:
     """Prepend a 0.28s still frame of the thumbnail to the video for SO9 upload.
 
-    Facebook/Instagram Reels don't support custom thumbnails via API —
+    Facebook/Instagram/TikTok Reels don't support custom thumbnails via API —
     they auto-pick a cover frame from the video.  By placing a bright,
     text-visible thumbnail image at the very start (0.28s), the auto-picked
     cover will look correct on every platform.
@@ -159,8 +159,7 @@ def prepare_social_video(video_path, thumbnail_path: str) -> str:
     if os.path.exists(social_path):
         os.remove(social_path)
 
-    # Probe the original video to get fps and audio sample-rate so the
-    # concat filter produces a seamless result.
+    # Probe the original video to get fps
     probe = subprocess.run(
         ["ffprobe", "-v", "error",
          "-select_streams", "v:0",
@@ -176,28 +175,28 @@ def prepare_social_video(video_path, thumbnail_path: str) -> str:
         except Exception:
             pass
 
-    # Build an FFmpeg command that:
-    #   input 0 = thumbnail image → 0.28s video clip at matching fps/size
-    #   input 1 = original video
-    # Then concat them together with the original audio stream.
+    # Build an FFmpeg command mimicking Hedra Dev's exact filter graph
     cmd = [
         "ffmpeg",
-        # Input 0: thumbnail still → 0.28s video
+        # Input 0: original video
+        "-i", video_path_str,
+        # Input 1: thumbnail still → 0.28s video
         "-loop", "1",
-        "-framerate", fps,
         "-t", "0.28",
         "-i", thumbnail_path,
-        # Input 1: original video
-        "-i", video_path_str,
-        # Concat filter: scale thumbnail to match, then join video streams.
-        # Generate 0.28s silence for the thumbnail clip so audio stays in sync.
+        # Input 2: 0.28s silence
+        "-f", "lavfi",
+        "-t", "0.28",
+        "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+        
         "-filter_complex",
-        f"[0:v]scale=1080:1920:force_original_aspect_ratio=disable,setsar=1,fps={fps},format=yuv420p[thumb];"
-        f"[1:v]fps={fps},format=yuv420p[main];"
-        f"[thumb][main]concat=n=2:v=1:a=0[vout];"
-        f"anullsrc=r=44100:cl=stereo[silence];"
-        f"[silence]atrim=0:0.28[sil];"
-        f"[sil][1:a]concat=n=2:v=0:a=1[aout]",
+        (
+            f"[1:v]scale=1080:1920:force_original_aspect_ratio=disable,setsar=1,fps={fps},format=yuv420p[vcover]; "
+            f"[2:a]aresample=48000[acover]; "
+            f"[0:v]fps={fps},format=yuv420p[vmain]; "
+            f"[0:a]aresample=48000[amain]; "
+            f"[vcover][acover][vmain][amain]concat=n=2:v=1:a=1[vout][aout]"
+        ),
         "-map", "[vout]",
         "-map", "[aout]",
         "-c:v", "libx264",
