@@ -37,32 +37,98 @@ def upload_temp_file(file_path: str) -> str:
         data = resp.json().get("data", {})
         return data.get("url", "").replace("tmpfiles.org/", "tmpfiles.org/dl/")
 
-def generate_thumbnail(video_path) -> str:
-    """Capture the actual rendered video frame at ~0.05s, like CapCut thumbnail capture."""
+def draw_thumbnail_text(image_path: str, title: str) -> str:
+    """Draw text on the thumbnail image following the Hedra production style.
+    - Dark overlay (36% opacity)
+    - Cyan top text, Yellow bottom text with black stroke
+    """
+    try:
+        from PIL import Image, ImageDraw, ImageFont, ImageOps
+        
+        img = Image.open(image_path).convert("RGBA")
+        
+        # Fit and crop center
+        img = ImageOps.fit(img, (1080, 1920), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+        
+        # Overlay black 36%
+        overlay = Image.new("RGBA", img.size, (0, 0, 0, int(255 * 0.36)))
+        img = Image.alpha_composite(img, overlay)
+        
+        draw = ImageDraw.Draw(img)
+        font_path = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+        try:
+            font = ImageFont.truetype(font_path, 80)
+        except Exception:
+            font = ImageFont.load_default()
+            
+        parts = title.split(": ", 1)
+        if len(parts) == 1:
+            parts = title.split("- ", 1)
+            
+        line1 = parts[0] if len(parts) == 2 else ""
+        line2 = parts[1] if len(parts) == 2 else title
+
+        def draw_centered(text, y, color):
+            bbox = draw.textbbox((0, 0), text, font=font)
+            w = bbox[2] - bbox[0]
+            x = (img.width - w) / 2
+            # Stroke
+            draw.text((x, y), text, font=font, fill=color, stroke_width=4, stroke_fill="black")
+
+        center_y = img.height / 2
+        if line1:
+            draw_centered(line1, center_y - 100, "#00FFFF") # Cyan
+            draw_centered(line2, center_y + 20, "#FFFF00") # Yellow
+        else:
+            draw_centered(line2, center_y - 40, "#FFFF00")
+            
+        out_path = image_path.replace(".jpg", ".png")
+        img.convert("RGB").save(out_path)
+        return out_path
+    except Exception as e:
+        print(f"⚠️ PIL text drawing failed: {e}")
+        return image_path
+
+
+def generate_thumbnail(video_path, title: str = "") -> str:
+    """Capture the first frame (0.1s) and apply custom text overlay.
+    
+    Extracting at 0.1s avoids pure black frames, then we draw the text
+    overlay according to the Hedra production guide.
+    """
     video_path_str = str(video_path)
     thumb_path = video_path_str + ".jpg"
     if os.path.exists(thumb_path):
         os.remove(thumb_path)
+
     cmd = [
         "ffmpeg",
+        "-ss", "0.1",
         "-i", video_path_str,
-        "-vf", "select='gte(t,0.05)',scale=1080:1920",
+        "-vf", "scale=1080:1920",
         "-frames:v", "1",
         "-q:v", "2",
         "-y", thumb_path,
     ]
     result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if result.returncode != 0 or not os.path.exists(thumb_path):
-        raise Exception("Failed to capture thumbnail frame at 0.05s.")
+        raise Exception("Failed to capture thumbnail frame at 0.1s.")
+        
+    print("📸 Thumbnail captured at 0.1s")
+    
+    if title:
+        # Draw the text overlay on the image and return the new PNG path
+        thumb_path = draw_thumbnail_text(thumb_path, title)
+        
     return thumb_path
 
 
 def prepare_social_video(video_path, thumbnail_path: str) -> str:
-    """Prepend a 0.5s still frame of the thumbnail to the video for SO9 upload.
+    """Prepend a 0.28s still frame of the thumbnail to the video for SO9 upload.
 
     Facebook/Instagram Reels don't support custom thumbnails via API —
     they auto-pick a cover frame from the video.  By placing a bright,
-    text-visible thumbnail image at the very start (0.5s), the auto-picked
+    text-visible thumbnail image at the very start (0.28s), the auto-picked
     cover will look correct on every platform.
     """
     video_path_str = str(video_path)
@@ -88,26 +154,26 @@ def prepare_social_video(video_path, thumbnail_path: str) -> str:
             pass
 
     # Build an FFmpeg command that:
-    #   input 0 = thumbnail image → 0.5s video clip at matching fps/size
+    #   input 0 = thumbnail image → 0.28s video clip at matching fps/size
     #   input 1 = original video
     # Then concat them together with the original audio stream.
     cmd = [
         "ffmpeg",
-        # Input 0: thumbnail still → 0.5s video
+        # Input 0: thumbnail still → 0.28s video
         "-loop", "1",
         "-framerate", fps,
-        "-t", "0.5",
+        "-t", "0.28",
         "-i", thumbnail_path,
         # Input 1: original video
         "-i", video_path_str,
         # Concat filter: scale thumbnail to match, then join video streams.
-        # Generate 0.5s silence for the thumbnail clip so audio stays in sync.
+        # Generate 0.28s silence for the thumbnail clip so audio stays in sync.
         "-filter_complex",
         f"[0:v]scale=1080:1920:force_original_aspect_ratio=disable,setsar=1,fps={fps},format=yuv420p[thumb];"
         f"[1:v]fps={fps},format=yuv420p[main];"
         f"[thumb][main]concat=n=2:v=1:a=0[vout];"
         f"anullsrc=r=44100:cl=stereo[silence];"
-        f"[silence]atrim=0:0.5[sil];"
+        f"[silence]atrim=0:0.28[sil];"
         f"[sil][1:a]concat=n=2:v=0:a=1[aout]",
         "-map", "[vout]",
         "-map", "[aout]",
@@ -129,7 +195,7 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
     if not title:
         title = content.split('\n')[0][:95]
     # 1. Capture thumbnail and create a SO9-specific video copy.
-    thumb_path = generate_thumbnail(video_file_path)
+    thumb_path = generate_thumbnail(video_file_path, title)
     social_video_path = prepare_social_video(video_file_path, thumb_path)
 
     # 2. Upload video + thumbnail to get public URLs
@@ -166,7 +232,7 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
             "status": "public"
         },
         "tiktok_setting": {
-            "thumbnail_offset": 300  # 300ms = inside the 0.5s prepended thumbnail still
+            "thumbnail_offset": 140  # 140ms = inside the 0.28s prepended thumbnail still
         },
         "instagram_setting": {
             "type": "reel"  # SO9 docs: feed, reel, story
