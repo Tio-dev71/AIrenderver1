@@ -125,12 +125,10 @@ def prepare_social_video(video_path, thumbnail_path: str) -> str:
         raise Exception("Failed to prepend thumbnail frame to SO9 video.")
     return social_path
 
-def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, video_file_path: str, title: str = "") -> dict:
+def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, video_file_path: str, title: str = "", project_id: str = "") -> dict:
     if not title:
         title = content.split('\n')[0][:95]
     # 1. Capture thumbnail and create a SO9-specific video copy.
-    # YouTube can use thumbnail_url, but TikTok/Facebook/Instagram often use the
-    # first video frame, so the SO9 upload copy starts with the chosen thumbnail.
     thumb_path = generate_thumbnail(video_file_path)
     social_video_path = prepare_social_video(video_file_path, thumb_path)
 
@@ -198,8 +196,138 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
         except:
             err = resp.text
         raise Exception(f"SO9 API Error ({resp.status_code}): {err}")
-    return resp.json()
+    result = resp.json()
+
+    # 5. Set Facebook custom thumbnail via SO9 internal API
+    post_id = result.get("data", "")
+    if post_id and project_id:
+        try:
+            set_facebook_thumbnail(token, project_id, post_id, thumb_path)
+        except Exception as e:
+            print(f"⚠️ Failed to set Facebook thumbnail: {e}")
+    
+    return result
+
+
+# ─── SO9 Internal API: Custom Thumbnail for Facebook ─────────────────────────
+
+SO9_UPLOAD_BASE = "https://upload.so9.vn/api/v1"
+SO9_INTERNAL_BASE = "https://i.so9.vn/api/v1"
+
+PLATFORM_FACEBOOK = 5  # from DevTools network capture
+
+
+def upload_to_so9(token: str, project_id: str, image_path: str) -> str:
+    """Upload an image to SO9's permanent storage (asset.so9.vn).
+    
+    Returns the permanent URL like:
+      https://asset.so9.vn/do-space/{project_id}/post-{hash}...
+    """
+    url = f"{SO9_UPLOAD_BASE}/upload/image"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    with open(image_path, "rb") as f:
+        files = {"image": (os.path.basename(image_path), f, "image/jpeg")}
+        data = {
+            "projectId": project_id,
+            "folder": "post"
+        }
+        resp = requests.post(url, headers=headers, files=files, data=data)
+    
+    if not resp.ok:
+        raise Exception(f"SO9 upload error ({resp.status_code}): {resp.text[:200]}")
+    
+    result = resp.json()
+    image_url = result.get("data", {}).get("url", "")
+    if not image_url:
+        raise Exception(f"SO9 upload returned no URL: {result}")
+    print(f"✅ Thumbnail uploaded to SO9: {image_url[:80]}...")
+    return image_url
+
+
+def get_platform_posts(token: str, project_id: str, post_id: str) -> list:
+    """Get platform-specific sub-posts for a given SO9 post ID.
+    
+    Returns list of dicts like:
+      [{"_id": "...", "platform": 5, ...}, ...]
+    """
+    url = f"{SO9_INTERNAL_BASE}/projects/{project_id}/note-posts/list"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    params = {
+        "post_id": post_id,
+        "is_open": 0,
+        "menu": "dashboard"
+    }
+    resp = requests.get(url, headers=headers, params=params)
+    if not resp.ok:
+        raise Exception(f"SO9 get platform posts error ({resp.status_code}): {resp.text[:200]}")
+    
+    result = resp.json()
+    # Response may be {"data": [...]} or {"data": {"data": [...]}}
+    data = result.get("data", [])
+    if isinstance(data, dict):
+        data = data.get("data", [])
+    return data if isinstance(data, list) else []
+
+
+def set_facebook_thumbnail(token: str, project_id: str, post_id: str, thumb_path: str):
+    """Set custom thumbnail for Facebook Reels via SO9 internal API.
+    
+    Flow:
+    1. Upload thumbnail to SO9's permanent storage
+    2. Get platform-specific post IDs
+    3. Call edit-social-post for Facebook platform
+    """
+    # 1. Upload thumbnail to SO9
+    thumb_url = upload_to_so9(token, project_id, thumb_path)
+    
+    # 2. Wait for SO9 to finish processing the post across platforms
+    print("⏳ Waiting 15s for SO9 to process post across platforms...")
+    time.sleep(15)
+    
+    # 3. Get platform-specific post IDs
+    platform_posts = get_platform_posts(token, project_id, post_id)
+    if not platform_posts:
+        print("⚠️ No platform posts found — post may still be processing.")
+        return
+    
+    # 4. Find Facebook platform post and set thumbnail
+    fb_count = 0
+    for pp in platform_posts:
+        platform = pp.get("platform")
+        platform_post_id = pp.get("_id", "")
+        
+        if platform == PLATFORM_FACEBOOK and platform_post_id:
+            edit_url = f"{SO9_INTERNAL_BASE}/projects/{project_id}/posts/edit-social-post"
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            body = {
+                "platform_post_id": platform_post_id,
+                "platform": PLATFORM_FACEBOOK,
+                "info": {
+                    "thumb": thumb_url
+                },
+                "menu": "dashboard"
+            }
+            resp = requests.put(edit_url, headers=headers, json=body)
+            if resp.ok:
+                print(f"✅ Facebook thumbnail set for platform_post {platform_post_id}")
+                fb_count += 1
+            else:
+                print(f"⚠️ Failed to set FB thumbnail ({resp.status_code}): {resp.text[:200]}")
+    
+    if fb_count == 0:
+        print(f"⚠️ No Facebook platform post found. Available platforms: {[p.get('platform') for p in platform_posts]}")
+    else:
+        print(f"✅ Facebook thumbnail set for {fb_count} post(s)")
+
 
 if __name__ == "__main__":
     # Test only, won't execute when imported
     pass
+

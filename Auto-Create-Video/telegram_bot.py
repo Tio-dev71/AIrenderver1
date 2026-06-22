@@ -53,6 +53,7 @@ SCAN_INTERVAL_MINUTES = int(os.environ.get("SCAN_INTERVAL_MINUTES", "60"))
 SO9_APP_ID = os.environ.get("SO9_APP_ID", "")
 SO9_APP_SECRET = os.environ.get("SO9_APP_SECRET", "")
 SO9_CHANNEL_IDS = os.environ.get("SO9_CHANNEL_IDS", "")
+SO9_PROJECT_ID = os.environ.get("SO9_PROJECT_ID", "")
 
 # TTS config (read from same .env used by the Node.js pipeline)
 TTS_PROVIDER = os.environ.get("TTS_PROVIDER", "elevenlabs")
@@ -935,7 +936,8 @@ def render_video_task(job_id: str, message_id: int):
                             app_secret=SO9_APP_SECRET,
                             channel_ids=channel_ids,
                             content=post_content,
-                            video_file_path=video_file
+                            video_file_path=video_file,
+                            project_id=SO9_PROJECT_ID
                         )
                         bot.send_message(
                             chat_id,
