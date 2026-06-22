@@ -49,11 +49,75 @@ def upload_temp_file(file_path: str) -> str:
             resp2.raise_for_status()
             return resp2.text.strip()
 
+def draw_thumbnail_text(image_path: str, title: str) -> str:
+    """Draw text on the thumbnail image following the Hedra production style.
+    - Dark overlay (36% opacity)
+    - Cyan top text, Yellow bottom text with black stroke
+    - Wraps text to fit within 1080px width
+    """
+    try:
+        from PIL import Image, ImageDraw, ImageFont, ImageOps
+        import textwrap
+        
+        img = Image.open(image_path).convert("RGBA")
+        
+        # Fit and crop center
+        img = ImageOps.fit(img, (1080, 1920), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+        
+        # Overlay black 36%
+        overlay = Image.new("RGBA", img.size, (0, 0, 0, int(255 * 0.36)))
+        img = Image.alpha_composite(img, overlay)
+        
+        draw = ImageDraw.Draw(img)
+        font_path = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+        try:
+            font = ImageFont.truetype(font_path, 60)
+        except Exception:
+            font = ImageFont.load_default()
+            
+        parts = title.split(": ", 1)
+        if len(parts) == 1:
+            parts = title.split("- ", 1)
+            
+        line1 = parts[0] if len(parts) == 2 else ""
+        line2 = parts[1] if len(parts) == 2 else title
+
+        def draw_wrapped(text, y_start, color):
+            # Wrap text to ~28 chars per line for font size 60
+            wrapped_lines = textwrap.wrap(text, width=28)
+            y = y_start
+            for line in wrapped_lines:
+                bbox = draw.textbbox((0, 0), line, font=font)
+                w = bbox[2] - bbox[0]
+                h = bbox[3] - bbox[1]
+                x = (img.width - w) / 2
+                # Stroke
+                draw.text((x, y), line, font=font, fill=color, stroke_width=4, stroke_fill="black")
+                y += h + 20
+            return y
+
+        # Start drawing slightly above center
+        start_y = img.height / 2 - 150
+        
+        if line1:
+            next_y = draw_wrapped(line1, start_y, "#00FFFF") # Cyan
+            draw_wrapped(line2, next_y + 40, "#FFFF00") # Yellow
+        else:
+            draw_wrapped(line2, start_y, "#FFFF00")
+            
+        out_path = image_path.replace(".jpg", ".png")
+        img.convert("RGB").save(out_path)
+        return out_path
+    except Exception as e:
+        print(f"⚠️ PIL text drawing failed: {e}")
+        return image_path
+
+
 def generate_thumbnail(video_path, title: str = "") -> str:
-    """Capture the exact frame at 0.05s for the thumbnail.
+    """Capture the first frame (0.1s) and apply custom text overlay.
     
-    The video already contains the perfectly rendered title at 0.03-0.05s.
-    We extract this frame and use it as the cover image.
+    Extracting at 0.1s avoids pure black frames, then we draw the text
+    overlay according to the Hedra production guide.
     """
     video_path_str = str(video_path)
     thumb_path = video_path_str + ".jpg"
@@ -62,7 +126,7 @@ def generate_thumbnail(video_path, title: str = "") -> str:
 
     cmd = [
         "ffmpeg",
-        "-ss", "0.05",
+        "-ss", "0.1",
         "-i", video_path_str,
         "-vf", "scale=1080:1920",
         "-frames:v", "1",
@@ -71,9 +135,13 @@ def generate_thumbnail(video_path, title: str = "") -> str:
     ]
     result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if result.returncode != 0 or not os.path.exists(thumb_path):
-        raise Exception("Failed to capture thumbnail frame at 0.05s.")
+        raise Exception("Failed to capture thumbnail frame at 0.1s.")
         
-    print("📸 Thumbnail captured at 0.05s")
+    print("📸 Thumbnail captured at 0.1s")
+    
+    if title:
+        # Draw the text overlay on the image and return the new PNG path
+        thumb_path = draw_thumbnail_text(thumb_path, title)
         
     return thumb_path
 
