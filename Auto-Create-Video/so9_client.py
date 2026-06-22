@@ -29,13 +29,25 @@ def get_access_token(app_id: str, app_secret: str) -> str:
     return _cached_token
 
 def upload_temp_file(file_path: str) -> str:
-    url = "https://tmpfiles.org/api/v1/upload"
-    with open(file_path, "rb") as f:
-        files = {'file': f}
-        resp = requests.post(url, files=files)
-        resp.raise_for_status()
-        data = resp.json().get("data", {})
-        return data.get("url", "").replace("tmpfiles.org/", "tmpfiles.org/dl/")
+    # Try tmpfiles.org first
+    try:
+        url = "https://tmpfiles.org/api/v1/upload"
+        with open(file_path, "rb") as f:
+            files = {'file': f}
+            resp = requests.post(url, files=files, timeout=30)
+            resp.raise_for_status()
+            data = resp.json().get("data", {})
+            return data.get("url", "").replace("tmpfiles.org/", "tmpfiles.org/dl/")
+    except Exception as e:
+        print(f"⚠️ tmpfiles.org failed ({e}), falling back to catbox.moe...")
+        # Fallback to catbox.moe
+        catbox_url = "https://catbox.moe/user/api.php"
+        with open(file_path, 'rb') as f:
+            files = {'fileToUpload': f}
+            data = {'reqtype': 'fileupload'}
+            resp2 = requests.post(catbox_url, files=files, data=data, timeout=60)
+            resp2.raise_for_status()
+            return resp2.text.strip()
 
 def draw_thumbnail_text(image_path: str, title: str) -> str:
     """Draw text on the thumbnail image following the Hedra production style.
