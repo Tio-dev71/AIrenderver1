@@ -41,9 +41,11 @@ def draw_thumbnail_text(image_path: str, title: str) -> str:
     """Draw text on the thumbnail image following the Hedra production style.
     - Dark overlay (36% opacity)
     - Cyan top text, Yellow bottom text with black stroke
+    - Wraps text to fit within 1080px width
     """
     try:
         from PIL import Image, ImageDraw, ImageFont, ImageOps
+        import textwrap
         
         img = Image.open(image_path).convert("RGBA")
         
@@ -57,7 +59,7 @@ def draw_thumbnail_text(image_path: str, title: str) -> str:
         draw = ImageDraw.Draw(img)
         font_path = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
         try:
-            font = ImageFont.truetype(font_path, 80)
+            font = ImageFont.truetype(font_path, 60)
         except Exception:
             font = ImageFont.load_default()
             
@@ -68,19 +70,28 @@ def draw_thumbnail_text(image_path: str, title: str) -> str:
         line1 = parts[0] if len(parts) == 2 else ""
         line2 = parts[1] if len(parts) == 2 else title
 
-        def draw_centered(text, y, color):
-            bbox = draw.textbbox((0, 0), text, font=font)
-            w = bbox[2] - bbox[0]
-            x = (img.width - w) / 2
-            # Stroke
-            draw.text((x, y), text, font=font, fill=color, stroke_width=4, stroke_fill="black")
+        def draw_wrapped(text, y_start, color):
+            # Wrap text to ~28 chars per line for font size 60
+            wrapped_lines = textwrap.wrap(text, width=28)
+            y = y_start
+            for line in wrapped_lines:
+                bbox = draw.textbbox((0, 0), line, font=font)
+                w = bbox[2] - bbox[0]
+                h = bbox[3] - bbox[1]
+                x = (img.width - w) / 2
+                # Stroke
+                draw.text((x, y), line, font=font, fill=color, stroke_width=4, stroke_fill="black")
+                y += h + 20
+            return y
 
-        center_y = img.height / 2
+        # Start drawing slightly above center
+        start_y = img.height / 2 - 150
+        
         if line1:
-            draw_centered(line1, center_y - 100, "#00FFFF") # Cyan
-            draw_centered(line2, center_y + 20, "#FFFF00") # Yellow
+            next_y = draw_wrapped(line1, start_y, "#00FFFF") # Cyan
+            draw_wrapped(line2, next_y + 40, "#FFFF00") # Yellow
         else:
-            draw_centered(line2, center_y - 40, "#FFFF00")
+            draw_wrapped(line2, start_y, "#FFFF00")
             
         out_path = image_path.replace(".jpg", ".png")
         img.convert("RGB").save(out_path)
@@ -232,7 +243,7 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
             "status": "public"
         },
         "tiktok_setting": {
-            "thumbnail_offset": 140  # 140ms = inside the 0.28s prepended thumbnail still
+            "thumbnail_offset": 0  # 0ms = first frame of the 0.28s prepended thumbnail still
         },
         "instagram_setting": {
             "type": "reel"  # SO9 docs: feed, reel, story
