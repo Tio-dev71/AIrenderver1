@@ -62,8 +62,8 @@ def generate_thumbnail(video_path, title: str = "") -> str:
 
     cmd = [
         "ffmpeg",
-        "-ss", "0.28",
         "-i", video_path_str,
+        "-ss", "0.28",
         "-vf", "scale=1080:1920",
         "-frames:v", "1",
         "-q:v", "2",
