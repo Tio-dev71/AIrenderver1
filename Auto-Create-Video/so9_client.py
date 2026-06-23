@@ -237,13 +237,13 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
         raise Exception(f"SO9 API Error ({resp.status_code}): {err}")
     result = resp.json()
 
-    # 5. Set Facebook custom thumbnail via SO9 internal API
+    # 5. Set custom thumbnail for Facebook/YouTube/Instagram via SO9 internal API
     post_id = result.get("data", "")
     if post_id and project_id:
         try:
-            set_facebook_thumbnail(token, project_id, post_id, thumb_path)
+            set_platform_thumbnails(token, project_id, post_id, thumb_path)
         except Exception as e:
-            print(f"⚠️ Failed to set Facebook thumbnail: {e}")
+            print(f"⚠️ Failed to set platform thumbnails: {e}")
     
     return result
 
@@ -253,7 +253,17 @@ def publish_post(app_id: str, app_secret: str, channel_ids: list, content: str, 
 SO9_UPLOAD_BASE = "https://upload.so9.vn/api/v1"
 SO9_INTERNAL_BASE = "https://i.so9.vn/api/v1"
 
-PLATFORM_FACEBOOK = 5  # from DevTools network capture
+PLATFORM_FACEBOOK = 5   # from DevTools network capture
+PLATFORM_YOUTUBE = 3
+PLATFORM_INSTAGRAM = 4
+PLATFORM_TIKTOK = 1
+
+# Platforms where we force-set the thumbnail via edit-social-post
+THUMBNAIL_PLATFORMS = {
+    PLATFORM_FACEBOOK: "Facebook",
+    PLATFORM_YOUTUBE: "YouTube",
+    PLATFORM_INSTAGRAM: "Instagram",
+}
 
 
 def upload_to_so9(token: str, project_id: str, image_path: str) -> str:
@@ -312,13 +322,13 @@ def get_platform_posts(token: str, project_id: str, post_id: str) -> list:
     return data if isinstance(data, list) else []
 
 
-def set_facebook_thumbnail(token: str, project_id: str, post_id: str, thumb_path: str):
-    """Set custom thumbnail for Facebook Reels via SO9 internal API.
+def set_platform_thumbnails(token: str, project_id: str, post_id: str, thumb_path: str):
+    """Set custom thumbnail for Facebook, YouTube, and Instagram via SO9 internal API.
     
     Flow:
     1. Upload thumbnail to SO9's permanent storage
     2. Get platform-specific post IDs
-    3. Call edit-social-post for Facebook platform
+    3. Call edit-social-post for each supported platform
     """
     # 1. Upload thumbnail to SO9
     thumb_url = upload_to_so9(token, project_id, thumb_path)
@@ -333,13 +343,14 @@ def set_facebook_thumbnail(token: str, project_id: str, post_id: str, thumb_path
         print("⚠️ No platform posts found — post may still be processing.")
         return
     
-    # 4. Find Facebook platform post and set thumbnail
-    fb_count = 0
+    # 4. Set thumbnail for each supported platform
+    success_count = 0
     for pp in platform_posts:
         platform = pp.get("platform")
         platform_post_id = pp.get("_id", "")
+        platform_name = THUMBNAIL_PLATFORMS.get(platform)
         
-        if platform == PLATFORM_FACEBOOK and platform_post_id:
+        if platform_name and platform_post_id:
             edit_url = f"{SO9_INTERNAL_BASE}/projects/{project_id}/posts/edit-social-post"
             headers = {
                 "Authorization": f"Bearer {token}",
@@ -347,7 +358,7 @@ def set_facebook_thumbnail(token: str, project_id: str, post_id: str, thumb_path
             }
             body = {
                 "platform_post_id": platform_post_id,
-                "platform": PLATFORM_FACEBOOK,
+                "platform": platform,
                 "info": {
                     "thumb": thumb_url
                 },
@@ -355,15 +366,15 @@ def set_facebook_thumbnail(token: str, project_id: str, post_id: str, thumb_path
             }
             resp = requests.put(edit_url, headers=headers, json=body)
             if resp.ok:
-                print(f"✅ Facebook thumbnail set for platform_post {platform_post_id}")
-                fb_count += 1
+                print(f"✅ {platform_name} thumbnail set for platform_post {platform_post_id}")
+                success_count += 1
             else:
-                print(f"⚠️ Failed to set FB thumbnail ({resp.status_code}): {resp.text[:200]}")
+                print(f"⚠️ Failed to set {platform_name} thumbnail ({resp.status_code}): {resp.text[:200]}")
     
-    if fb_count == 0:
-        print(f"⚠️ No Facebook platform post found. Available platforms: {[p.get('platform') for p in platform_posts]}")
+    if success_count == 0:
+        print(f"⚠️ No supported platform posts found. Available platforms: {[p.get('platform') for p in platform_posts]}")
     else:
-        print(f"✅ Facebook thumbnail set for {fb_count} post(s)")
+        print(f"✅ Thumbnail set for {success_count} platform(s)")
 
 
 if __name__ == "__main__":
