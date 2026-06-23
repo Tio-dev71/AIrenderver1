@@ -6,6 +6,10 @@ import subprocess
 
 SO9_API_BASE = "https://open-api.so9.vn/api/v1"
 
+# Percentage of video duration to extract the thumbnail frame (0-100)
+# Tune via .env: THUMBNAIL_PERCENT=50
+THUMBNAIL_PERCENT = float(os.environ.get("THUMBNAIL_PERCENT", "50")) / 100.0
+
 _cached_token = None
 _token_expiry = 0
 
@@ -74,7 +78,7 @@ def generate_thumbnail(video_path, title: str = "") -> str:
     if probe.returncode == 0:
         try:
             duration = float(probe.stdout.strip())
-            thumb_time = duration * 0.50
+            thumb_time = duration * THUMBNAIL_PERCENT
         except (ValueError, TypeError):
             pass
 
