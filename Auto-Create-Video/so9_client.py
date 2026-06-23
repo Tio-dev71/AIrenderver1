@@ -50,20 +50,39 @@ def upload_temp_file(file_path: str) -> str:
             return resp2.text.strip()
 
 def generate_thumbnail(video_path, title: str = "") -> str:
-    """Capture the frame at exactly 0.28s from the original video.
-    
-    The video already has the beautiful title rendered at this timestamp.
-    We extract this frame to use as the cover thumbnail.
+    """Capture a content-rich frame at 32% of video duration for thumbnail.
+
+    YouTube auto-picks a visually interesting frame from the middle of
+    the video — that's why its thumbnails show colorful charts/data.
+    TikTok/FB/Insta just take the first frame.  By extracting at 32%
+    of total duration (the Hedra standard) we get the same rich content
+    frame and prepend it so every platform shows it.
     """
     video_path_str = str(video_path)
     thumb_path = video_path_str + ".jpg"
     if os.path.exists(thumb_path):
         os.remove(thumb_path)
 
+    # 1. Get video duration via ffprobe
+    probe = subprocess.run(
+        ["ffprobe", "-v", "error",
+         "-show_entries", "format=duration",
+         "-of", "csv=p=0", video_path_str],
+        capture_output=True, text=True
+    )
+    thumb_time = 3.0  # fallback ~3s if probe fails
+    if probe.returncode == 0:
+        try:
+            duration = float(probe.stdout.strip())
+            thumb_time = duration * 0.32
+        except (ValueError, TypeError):
+            pass
+
+    # 2. Extract the frame (accurate seek: -ss AFTER -i)
     cmd = [
         "ffmpeg",
         "-i", video_path_str,
-        "-ss", "0.28",
+        "-ss", str(thumb_time),
         "-vf", "scale=1080:1920",
         "-frames:v", "1",
         "-q:v", "2",
@@ -71,10 +90,10 @@ def generate_thumbnail(video_path, title: str = "") -> str:
     ]
     result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if result.returncode != 0 or not os.path.exists(thumb_path):
-        raise Exception("Failed to capture thumbnail frame at 0.28s.")
-        
-    print("📸 Thumbnail captured at 0.28s from original video")
-        
+        raise Exception(f"Failed to capture thumbnail frame at {thumb_time:.1f}s.")
+
+    print(f"📸 Thumbnail captured at {thumb_time:.1f}s (32% of {duration:.1f}s duration)")
+
     return thumb_path
 
 
