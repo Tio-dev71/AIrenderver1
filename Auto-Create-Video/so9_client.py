@@ -74,7 +74,7 @@ def generate_thumbnail(video_path, title: str = "") -> str:
     if probe.returncode == 0:
         try:
             duration = float(probe.stdout.strip())
-            thumb_time = duration * 0.32
+            thumb_time = duration * 0.50
         except (ValueError, TypeError):
             pass
 
